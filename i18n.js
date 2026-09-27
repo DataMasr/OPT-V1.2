@@ -501,6 +501,11 @@ const I18N = {
 
     // Sidebar + header
     'nav.section': 'القائمة الرئيسية',
+    'nav.group.overview': 'نظرة عامة',
+    'nav.group.performance': 'الأداء والنظام',
+    'nav.group.display': 'الشاشة والجرافيكس',
+    'nav.group.tools': 'الأدوات',
+    'nav.group.fixes': 'الإصلاحات والشبكة',
     'nav.home': 'لوحة التحكم',
     'nav.tweaks': 'تحسين النظام',
     'nav.scopes': 'أكواد الحساسية',

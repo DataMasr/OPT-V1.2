@@ -255,8 +255,32 @@ input:focus-visible {
 .sidebar-menu {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 18px;
   flex-grow: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-inline-end: 2px;
+  margin-inline-end: -2px;
+}
+
+.menu-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.menu-group-label {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 1.3px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 4px 12px 6px;
+}
+
+.menu-group:first-child .menu-group-label {
+  padding-top: 2px;
 }
 
 .menu-tab {
@@ -3919,10 +3943,11 @@ body.license-level-2 #tab-memory {
     padding: 20px 12px 14px;
   }
 
-  .brand-text,
+  .app-sidebar .brand-text,
   .tab-label,
   .tag-pill,
   .sidebar-section-label,
+  .menu-group-label,
   .status-label,
   .status-value,
   .app-version-stamp {
@@ -3937,6 +3962,10 @@ body.license-level-2 #tab-memory {
 
   .sidebar-menu {
     margin-top: 24px;
+  }
+
+  .menu-group {
+    gap: 4px;
   }
 
   .sidebar-status-card {
@@ -4566,19 +4595,26 @@ html[dir="rtl"] .auth-paste {
 .auth-options {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   justify-content: space-between;
+  gap: 10px 14px;
   font-size: 12px;
   margin-top: 2px;
 }
 
 .auth-remember {
   display: inline-flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
   font-size: 11.5px;
   color: #94a3b8;
+  line-height: 1.4;
   cursor: pointer;
   user-select: none;
+}
+
+.auth-remember .auth-check {
+  margin-top: 1px;
 }
 
 .auth-remember input[type="checkbox"] {
