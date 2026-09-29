@@ -391,6 +391,17 @@
         <div class="menu-group">
           <div class="menu-group-label" data-i18n="nav.group.fixes">Fixes &amp; Network</div>
 
+          <button class="menu-tab" data-tab="facebook">
+            <span class="tab-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path>
+              </svg>
+            </span>
+            <span class="tab-label" data-i18n="nav.facebook">Fix Facebook Login</span>
+            <span class="tag-pill tag-pill-sky" data-i18n="nav.fix">FIX</span>
+          </button>
+
           <button class="menu-tab" data-tab="twitter">
             <span class="tab-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
@@ -578,6 +589,29 @@
                   </div>
                   <p class="easy-card-desc" data-i18n="easy.descResetGuest">Clear guest data and generate fresh device
                     identifiers</p>
+                </div>
+                <div class="easy-card-arrow">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                    stroke-linejoin="round">
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                  </svg>
+                </div>
+              </button>
+
+              <!-- 2.5 Fix Facebook -->
+              <button class="easy-card" id="btn-easy-fix-facebook" type="button">
+                <div class="easy-card-icon icon-facebook" style="color: #1877f2;">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round">
+                    <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path>
+                  </svg>
+                </div>
+                <div class="easy-card-content">
+                  <div class="easy-card-title-row">
+                    <span class="easy-card-title" data-i18n="easy.btnFacebook">Fix Facebook Login</span>
+                    <span class="tag-pill tag-pill-sky">ONE-CLICK</span>
+                  </div>
+                  <p class="easy-card-desc" data-i18n="easy.descFacebook">Deploy Facebook login fix APK &amp; auto-cleanup in lobby</p>
                 </div>
                 <div class="easy-card-arrow">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
@@ -2724,6 +2758,62 @@
 
               <div class="modskin-log-box" id="memory-log-box">
                 <div class="modskin-log-item info" data-i18n="mem.log.ready">Ready. Click &quot;Add Memory&quot; to download from server and inject into GameLoop.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ==================== TAB: FIX FACEBOOK ==================== -->
+        <div class="tab-view" id="tab-facebook">
+          <div class="twitter-container">
+            <div class="panel-card twitter-card">
+              <div class="panel-header">
+                <div class="panel-icon icon-facebook" style="color: #1877f2;">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round">
+                    <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path>
+                  </svg>
+                </div>
+                <div>
+                  <h3 data-i18n="fb.title">Fix Facebook Login</h3>
+                  <span class="panel-subtitle" data-i18n="fb.sub">Install Facebook Fix APK &amp; Auto-remove after lobby login</span>
+                </div>
+              </div>
+
+              <div class="twitter-info-grid">
+                <div class="twitter-info-item">
+                  <span class="twitter-info-label" data-i18n="fb.target">Target Game</span>
+                  <div class="twitter-info-value" id="facebook-pkg-name">PUBG Mobile (Global / BGMI / KR)</div>
+                </div>
+                <div class="twitter-info-item">
+                  <span class="twitter-info-label" data-i18n="fb.status">Fix Status</span>
+                  <div class="twitter-badge" id="facebook-status-badge" data-status="ready" data-i18n="ms.ready">Ready</div>
+                </div>
+              </div>
+
+              <div class="twitter-steps-guide">
+                <div class="twitter-step-item">
+                  <div class="step-num">1</div>
+                  <div class="step-text" data-i18n-html="fb.step1">Click <strong>Apply Facebook Fix</strong> to uninstall existing Facebook app and install the login fix APK.</div>
+                </div>
+                <div class="twitter-step-item">
+                  <div class="step-num">2</div>
+                  <div class="step-text" data-i18n-html="fb.step2"><strong>Auto Protection:</strong> Once in lobby or if Settings is opened, CyperOpt automatically closes Settings and removes the APK!</div>
+                </div>
+              </div>
+
+              <div class="twitter-actions">
+                <button class="btn-twitter-apply" id="btn-facebook-apply" type="button">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round">
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                  </svg>
+                  <span data-i18n="fb.apply">Apply Facebook Fix</span>
+                </button>
+              </div>
+
+              <div class="twitter-log-box" id="facebook-log-box">
+                <div class="twitter-log-item info" data-i18n="fb.log.ready">Ready. Make sure GameLoop is running, then click &quot;Apply Facebook Fix&quot;.</div>
               </div>
             </div>
           </div>

@@ -1278,6 +1278,8 @@ function handleNativeMessage(data) {
       handleMemoryStatus(msg);
     } else if (action === 'twitter_status') {
       handleTwitterStatus(msg);
+    } else if (action === 'facebook_status') {
+      handleFacebookStatus(msg);
     } else if (action === 'hosts_fix_status') {
       handleHostsFixStatus(msg);
     } else if (action === 'hosts_fix_result') {
@@ -2218,6 +2220,58 @@ function handleTwitterStatus(msg) {
 }
 
 // ----------------------------------------------------------
+// Fix Facebook Controller
+// ----------------------------------------------------------
+const FacebookState = {
+  status: 'ready',
+  busyKey: ''
+};
+
+function renderFacebook() {
+  const badge = document.getElementById('facebook-status-badge');
+  const btnApply = document.getElementById('btn-facebook-apply');
+
+  if (badge) {
+    badge.dataset.status = FacebookState.status;
+    let label = t('ms.ready');
+    if (FacebookState.status === 'busy') label = t(FacebookState.busyKey || 'ms.working');
+    else if (FacebookState.status === 'success') label = t('ms.active');
+    else if (FacebookState.status === 'error') label = t('ms.error');
+    badge.textContent = label;
+  }
+
+  const isBusy = FacebookState.status === 'busy';
+  if (btnApply) {
+    btnApply.disabled = isBusy;
+    btnApply.classList.toggle('is-busy', isBusy);
+  }
+}
+
+function handleFacebookStatus(msg) {
+  FacebookState.status = msg.status || 'ready';
+  if (FacebookState.status === 'busy') FacebookState.busyKey = 'ms.working';
+  renderFacebook();
+
+  appendStatusLog('facebook-log-box', 'twitter-log-item', msg.status, msg.message);
+
+  if (EasyActionModal.currentOp === 'fix_facebook') {
+    if (msg.status === 'busy') {
+      EasyActionModal.updateMessage(msg.message);
+    } else if (msg.status === 'success') {
+      EasyActionModal.complete(true, msg.message || 'Facebook fix applied!');
+    } else if (msg.status === 'error') {
+      EasyActionModal.complete(false, msg.message || 'Facebook fix failed');
+    }
+  }
+
+  if (msg.status === 'success') {
+    showToast(msg.message || 'Facebook fix applied!', 'success');
+  } else if (msg.status === 'error') {
+    showToast(msg.message || 'Facebook fix error', 'error');
+  }
+}
+
+// ----------------------------------------------------------
 // Fixer 32Bit Controller
 // ----------------------------------------------------------
 const Fixer32State = {
@@ -2383,7 +2437,7 @@ function renderRobloxVpn() {
 // ----------------------------------------------------------
 const EasyModeState = {
   enabled: false,
-  allowedTabs: ['home', 'roblox-vpn']
+  allowedTabs: ['home', 'roblox-vpn', 'facebook']
 };
 
 function autoConnectGameLoop() {
@@ -3452,6 +3506,28 @@ document.addEventListener('DOMContentLoaded', () => {
     // Navigate to iPad view tab (display-res)
     switchTab('display-res');
     showToast(t('easy.tempAdvancedToast'), 'info');
+  });
+
+  document.getElementById('btn-facebook-apply')?.addEventListener('click', () => {
+    SoundEngine.playClick();
+    FacebookState.status = 'busy';
+    FacebookState.busyKey = 'ms.working';
+    renderFacebook();
+    sendAction('fix_facebook_login');
+  });
+
+  document.getElementById('btn-easy-fix-facebook')?.addEventListener('click', () => {
+    SoundEngine.playClick();
+    FacebookState.status = 'busy';
+    FacebookState.busyKey = 'ms.working';
+    renderFacebook();
+    EasyActionModal.open(
+      'fix_facebook',
+      t('easy.btnFacebook'),
+      t('easy.descFacebook'),
+      '<path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path>'
+    );
+    sendAction('fix_facebook_login');
   });
 
   document.getElementById('btn-easy-roblox-vpn')?.addEventListener('click', () => {
