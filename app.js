@@ -1239,7 +1239,10 @@ function handleNativeMessage(data) {
         });
       }
     } else if (action === 'gameloop_adb_status') {
-      if (msg.wasAlreadyEnabled === false) {
+      if (msg.vpnOnly) {
+        switchTab('roblox-vpn');
+        showToast(t('rvpn.vpnOnlyMode'), 'info');
+      } else if (msg.wasAlreadyEnabled === false) {
         showToast(Lang.current === 'ar'
           ? 'تم تفعيل وضع تصحيح أخطاء ADB في محاكي GameLoop تلقائياً!'
           : 'GameLoop ADB debugging has been automatically enabled!', 'success');
@@ -1286,6 +1289,17 @@ function handleNativeMessage(data) {
       handleHostsFixResult(msg);
     } else if (action === 'roblox_vpn_status') {
       handleRobloxVpnStatus(msg);
+    } else if (action === 'create_vpn_shortcut_result') {
+      if (msg.success) {
+        showToast(t('rvpn.shortcutCreated'), 'success');
+      } else {
+        showToast(msg.message || t('rvpn.shortcutFailed'), 'error');
+      }
+    } else if (action === 'startup_mode') {
+      if (msg.vpnOnly) {
+        switchTab('roblox-vpn');
+        showToast(t('rvpn.vpnOnlyMode'), 'info');
+      }
     } else if (action === 'gfx_log') {
       appendGfxLog(msg.tag || "ADB", msg.text || "");
     } else if (action === 'apply_gfx' || action === 'kill_emulator' || action === 'reset_guest') {
@@ -3231,6 +3245,11 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       sendAction('connect_roblox_vpn');
     }
+  });
+
+  document.getElementById('btn-create-vpn-shortcut')?.addEventListener('click', () => {
+    SoundEngine.playClick();
+    sendAction('create_vpn_shortcut');
   });
 
   document.getElementById('btn-roblox-vpn-ping')?.addEventListener('click', () => {
