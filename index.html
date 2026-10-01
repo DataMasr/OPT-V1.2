@@ -276,25 +276,6 @@
             <span class="tab-label" data-i18n="nav.scopes">Sensitivity Profiles</span>
           </button>
 
-          <button class="menu-tab" data-tab="memory">
-            <span class="tab-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                stroke-linejoin="round">
-                <rect x="4" y="4" width="16" height="16" rx="2"></rect>
-                <rect x="9" y="9" width="6" height="6"></rect>
-                <line x1="9" y1="1" x2="9" y2="4"></line>
-                <line x1="15" y1="1" x2="15" y2="4"></line>
-                <line x1="9" y1="20" x2="9" y2="23"></line>
-                <line x1="15" y1="20" x2="15" y2="23"></line>
-                <line x1="20" y1="9" x2="23" y2="9"></line>
-                <line x1="20" y1="14" x2="23" y2="14"></line>
-                <line x1="1" y1="9" x2="4" y2="9"></line>
-                <line x1="1" y1="14" x2="4" y2="14"></line>
-              </svg>
-            </span>
-            <span class="tab-label" data-i18n="nav.memory">Memory</span>
-            <span class="tag-pill tag-pill-emerald" data-i18n="nav.new">NEW</span>
-          </button>
         </div>
 
         <div class="menu-group">
@@ -372,6 +353,26 @@
               </svg>
             </span>
             <span class="tab-label" data-i18n="nav.paks">Paks Tool</span>
+          </button>
+
+          <button class="menu-tab" data-tab="memory">
+            <span class="tab-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <rect x="4" y="4" width="16" height="16" rx="2"></rect>
+                <rect x="9" y="9" width="6" height="6"></rect>
+                <line x1="9" y1="1" x2="9" y2="4"></line>
+                <line x1="15" y1="1" x2="15" y2="4"></line>
+                <line x1="9" y1="20" x2="9" y2="23"></line>
+                <line x1="15" y1="20" x2="15" y2="23"></line>
+                <line x1="20" y1="9" x2="23" y2="9"></line>
+                <line x1="20" y1="14" x2="23" y2="14"></line>
+                <line x1="1" y1="9" x2="4" y2="9"></line>
+                <line x1="1" y1="14" x2="4" y2="14"></line>
+              </svg>
+            </span>
+            <span class="tab-label" data-i18n="nav.memory">Memory</span>
+            <span class="tag-pill tag-pill-emerald" data-i18n="nav.new">NEW</span>
           </button>
 
           <button class="menu-tab" data-tab="modskin">
@@ -3165,6 +3166,30 @@
       <div class="action-modal-actions" id="easy-loading-actions" hidden>
         <button class="btn btn-primary action-modal-btn" id="btn-close-easy-loading" type="button">
           <span data-i18n="common.close">Close</span>
+        </button>
+      </div>
+    </div>
+  <!-- ==================== CENTERED POPUP NOTIFICATION MODAL ==================== -->
+  <div class="action-modal-overlay" id="notice-popup-modal" hidden>
+    <div class="action-modal-backdrop" id="notice-popup-backdrop"></div>
+    <div class="action-modal-card" style="max-width: 440px; text-align: center; padding: 28px 24px; border: 1px solid rgba(16, 185, 129, 0.4); box-shadow: 0 0 40px rgba(16, 185, 129, 0.25);">
+      <div class="action-modal-graphic" style="margin-bottom: 16px;">
+        <div style="width: 64px; height: 64px; margin: 0 auto; border-radius: 50%; background: rgba(16, 185, 129, 0.15); display: flex; align-items: center; justify-content: center; color: #10b981; border: 1px solid rgba(16, 185, 129, 0.4);">
+          <svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+          </svg>
+        </div>
+      </div>
+      <div class="action-modal-content">
+        <h3 class="action-modal-title" id="notice-popup-title" style="font-size: 20px; font-weight: 700; margin-bottom: 10px; color: #f8fafc;">تم تثبيت ModSkin بنجاح!</h3>
+        <p class="action-modal-desc" id="notice-popup-desc" style="font-size: 15px; line-height: 1.6; color: #cbd5e1; margin-bottom: 20px; padding: 14px; background: rgba(15, 23, 42, 0.7); border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.08);">
+          لازم تخش جيم أو جيم تدريب وتطلع منه علشان يشتغل السكن معاك.
+        </p>
+      </div>
+      <div>
+        <button class="btn btn-primary action-modal-btn" id="btn-close-notice-popup" type="button" style="width: 100%; padding: 12px; font-size: 15px; font-weight: 600; background: linear-gradient(135deg, #10b981, #059669); border: none; border-radius: 8px; color: #fff; cursor: pointer; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);">
+          <span>فهمت / حسناً</span>
         </button>
       </div>
     </div>

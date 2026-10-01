@@ -144,12 +144,12 @@ const TOAST_ICONS = {
   info: '<circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line>'
 };
 
-function showToast(text, type = 'success') {
+function showToast(text, type = 'success', customDuration = 0) {
   const container = document.getElementById('toast-wrapper');
   if (!container) return;
   if (!TOAST_ICONS[type]) type = 'success';
 
-  const duration = type === 'error' ? 4800 : 3400;
+  const duration = customDuration > 0 ? customDuration : (type === 'error' ? 4800 : 3400);
 
   const item = document.createElement('div');
   item.className = `toast-item toast-${type}`;
@@ -2118,7 +2118,12 @@ function handleModSkinStatus(msg) {
   }
 
   if (msg.status === 'success') {
-    showToast(msg.message || t('ms.toast.ok'), 'success');
+    showToast(msg.message || t('ms.toast.ok'), 'success', 7500);
+    NoticePopup.open(
+      Lang.current === 'ar' ? 'تم تثبيت ModSkin بنجاح!' : 'ModSkin Applied Successfully!',
+      msg.message || t('ms.toast.ok'),
+      Lang.current === 'ar' ? 'فهمت / حسناً' : 'Got it'
+    );
   } else if (msg.status === 'removed') {
     showToast(msg.message || t('ms.toast.removed'), 'info');
   } else if (msg.status === 'error') {
@@ -2646,6 +2651,36 @@ const EasyActionModal = {
     clearTimeout(this.timer);
     this.currentOp = null;
     const modal = document.getElementById('easy-loading-modal');
+    if (modal) {
+      modal.classList.remove('open');
+      setTimeout(() => {
+        modal.hidden = true;
+      }, 300);
+    }
+  }
+};
+
+const NoticePopup = {
+  open(title, desc, btnText = '') {
+    const modal = document.getElementById('notice-popup-modal');
+    const titleEl = document.getElementById('notice-popup-title');
+    const descEl = document.getElementById('notice-popup-desc');
+    const btnClose = document.getElementById('btn-close-notice-popup');
+
+    if (!modal) return;
+    if (titleEl) titleEl.textContent = title;
+    if (descEl) descEl.textContent = desc;
+    if (btnClose && btnText) {
+      const span = btnClose.querySelector('span');
+      if (span) span.textContent = btnText;
+    }
+
+    modal.hidden = false;
+    modal.classList.add('open');
+  },
+
+  close() {
+    const modal = document.getElementById('notice-popup-modal');
     if (modal) {
       modal.classList.remove('open');
       setTimeout(() => {
@@ -3501,6 +3536,15 @@ document.addEventListener('DOMContentLoaded', () => {
     if (EasyActionModal.currentOp && document.getElementById('easy-loading-actions')?.hidden === false) {
       EasyActionModal.close();
     }
+  });
+
+  document.getElementById('btn-close-notice-popup')?.addEventListener('click', () => {
+    SoundEngine.playClick();
+    NoticePopup.close();
+  });
+
+  document.getElementById('notice-popup-backdrop')?.addEventListener('click', () => {
+    NoticePopup.close();
   });
 
   document.getElementById('btn-easy-ipad-view')?.addEventListener('click', () => {

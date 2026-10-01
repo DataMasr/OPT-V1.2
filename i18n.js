@@ -418,7 +418,7 @@ const I18N = {
     'ms.removingBadge': 'Removing...',
     'ms.log.init': 'Initializing ModSkin patch injection...',
     'ms.log.wipe': 'Sending wipe command to puffer_temp...',
-    'ms.toast.ok': 'ModSkin applied successfully!',
+    'ms.toast.ok': 'ModSkin applied! Enter a match or training game and exit for the skin to take effect.',
     'ms.toast.removed': 'ModSkin removed!',
     'ms.toast.err': 'ModSkin error',
 
@@ -1078,7 +1078,7 @@ const I18N = {
     'ms.removingBadge': 'جاري الإزالة...',
     'ms.log.init': 'جاري بدء تثبيت باتش ModSkin...',
     'ms.log.wipe': 'جاري إرسال أمر المسح إلى puffer_temp...',
-    'ms.toast.ok': 'تم تطبيق ModSkin بنجاح!',
+    'ms.toast.ok': 'تم تثبيت ModSkin بنجاح! لازم تخش جيم أو جيم تدريب وتطلع منه علشان يشتغل معاك',
     'ms.toast.removed': 'تمت إزالة ModSkin!',
     'ms.toast.err': 'خطأ في ModSkin',
 
