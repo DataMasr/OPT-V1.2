@@ -180,7 +180,8 @@ const I18N = {
     'auth.err.autoFailed': 'Automatic sign-in failed.',
     'auth.pasteFailed': "Couldn't read the clipboard - paste with Ctrl+V.",
     'auth.logoutConfirm': 'Log out and remove the saved license key from this PC?',
-    'auth.err.level2Modskin': 'ModSkin is not available in Level 2 license.',
+    'auth.err.level1Modskin': 'ModSkin is only available in Level 2 license.',
+    'auth.err.level2Modskin': 'ModSkin is only available in Level 2 license.',
     'auth.err.level2Memory': 'Memory is not available in Level 2 license.',
 
     'license.active': 'Active',
@@ -191,8 +192,8 @@ const I18N = {
     'license.daysFew': '{n} days left',
     'license.daysMany': '{n} days left',
     'license.expiresOn': 'Expires on {date}',
-    'license.level1': 'Level 1 (Full Access)',
-    'license.level2': 'Level 2 (No ModSkin / Memory)',
+    'license.level1': 'Level 1',
+    'license.level2': 'Level 2 (ModSkin Included)',
 
     'side.running': 'Running',
     'side.notRunning': 'Not Running',
@@ -492,8 +493,9 @@ const I18N = {
     'auth.err.autoFailed': 'فشل تسجيل الدخول التلقائي.',
     'auth.pasteFailed': 'تعذّرت قراءة الحافظة - الصق باستخدام Ctrl+V.',
     'auth.logoutConfirm': 'هل تريد تسجيل الخروج وحذف مفتاح الترخيص المحفوظ من هذا الجهاز؟',
-    'auth.err.level2Modskin': 'ميزة ModSkin غير متاحة في ترخيص لفل 2 (متاحة في لفل 1 الافتراضي فقط).',
-    'auth.err.level2Memory': 'ميزة Memory غير متاحة في ترخيص لفل 2 (متاحة في لفل 1 الافتراضي فقط).',
+    'auth.err.level1Modskin': 'ميزة ModSkin غير متاحة في ترخيص لفل 1 (متاحة في لفل 2 فقط).',
+    'auth.err.level2Modskin': 'ميزة ModSkin غير متاحة في ترخيص لفل 1 (متاحة في لفل 2 فقط).',
+    'auth.err.level2Memory': 'ميزة Memory غير متاحة في ترخيص لفل 2.',
 
     'license.active': 'مفعّل',
     'license.lifetime': 'مدى الحياة',
@@ -503,8 +505,8 @@ const I18N = {
     'license.daysFew': 'متبقي {n} أيام',
     'license.daysMany': 'متبقي {n} يوماً',
     'license.expiresOn': 'ينتهي في {date}',
-    'license.level1': 'لفل 1 (شامل كل شيء)',
-    'license.level2': 'لفل 2 (بدون مود سكن وميموري)',
+    'license.level1': 'لفل 1',
+    'license.level2': 'لفل 2 (شامل ModSkin)',
 
     // Sidebar + header
     'nav.section': 'القائمة الرئيسية',

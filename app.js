@@ -108,8 +108,12 @@ function renderTabHeader() {
 
 // Switch Tab
 function switchTab(tabId, silent) {
-  if ((tabId === 'modskin' || tabId === 'memory') && isLevel2License()) {
-    showToast(tabId === 'memory' ? t('auth.err.level2Memory') : t('auth.err.level2Modskin'), 'error');
+  if (tabId === 'modskin' && !isLevel2License()) {
+    showToast(t('auth.err.level1Modskin'), 'error');
+    return;
+  }
+  if (tabId === 'memory' && isLevel2License()) {
+    showToast(t('auth.err.level2Memory'), 'error');
     return;
   }
   if (!silent) SoundEngine.playClick();
@@ -532,7 +536,7 @@ function licenseRemainingText(lic) {
 
 function isLevel2License() {
   const sub = (Auth.license && Auth.license.subscription ? String(Auth.license.subscription) : '').trim().toLowerCase();
-  return sub === '2';
+  return sub === '2' || sub === 'level 2' || sub === 'lvl 2' || sub === 'level2' || sub === 'lvl2';
 }
 
 function applyLicenseLevelPermissions() {
@@ -542,7 +546,7 @@ function applyLicenseLevelPermissions() {
 
   const modskinTabBtn = document.querySelector('.menu-tab[data-tab="modskin"]');
   if (modskinTabBtn) {
-    if (isL2) {
+    if (!isL2) {
       modskinTabBtn.style.display = 'none';
       modskinTabBtn.hidden = true;
     } else if (!EasyModeState.enabled) {
@@ -564,8 +568,8 @@ function applyLicenseLevelPermissions() {
 
   const modskinTile = document.querySelector('.tool-tile[data-tab="modskin"]');
   if (modskinTile) {
-    modskinTile.style.display = isL2 ? 'none' : '';
-    modskinTile.hidden = isL2;
+    modskinTile.style.display = !isL2 ? 'none' : '';
+    modskinTile.hidden = !isL2;
   }
 
   const memoryTile = document.querySelector('.tool-tile[data-tab="memory"]');
@@ -576,8 +580,8 @@ function applyLicenseLevelPermissions() {
 
   const easyModskinBtn = document.getElementById('btn-easy-modskin');
   if (easyModskinBtn) {
-    easyModskinBtn.style.display = isL2 ? 'none' : '';
-    easyModskinBtn.hidden = isL2;
+    easyModskinBtn.style.display = !isL2 ? 'none' : '';
+    easyModskinBtn.hidden = !isL2;
   }
 
   const easyMemoryBtn = document.getElementById('btn-easy-memory');
@@ -586,9 +590,9 @@ function applyLicenseLevelPermissions() {
     easyMemoryBtn.hidden = isL2;
   }
 
-  if (isL2 && currentTab === 'modskin') {
+  if (!isL2 && currentTab === 'modskin') {
     switchTab('home', true);
-    showToast(t('auth.err.level2Modskin'), 'error');
+    showToast(t('auth.err.level1Modskin'), 'error');
   }
 
   if (isL2 && currentTab === 'memory') {
@@ -3156,8 +3160,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ModSkin Actions
   document.getElementById('btn-modskin-add')?.addEventListener('click', () => {
-    if (isLevel2License()) {
-      showToast(t('auth.err.level2Modskin'), 'error');
+    if (!isLevel2License()) {
+      showToast(t('auth.err.level1Modskin'), 'error');
       return;
     }
     SoundEngine.playClick();
@@ -3170,8 +3174,8 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   document.getElementById('btn-modskin-remove')?.addEventListener('click', () => {
-    if (isLevel2License()) {
-      showToast(t('auth.err.level2Modskin'), 'error');
+    if (!isLevel2License()) {
+      showToast(t('auth.err.level1Modskin'), 'error');
       return;
     }
     SoundEngine.playClick();
@@ -3490,8 +3494,8 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   document.getElementById('btn-easy-modskin')?.addEventListener('click', () => {
-    if (isLevel2License()) {
-      showToast(t('auth.err.level2Modskin'), 'error');
+    if (!isLevel2License()) {
+      showToast(t('auth.err.level1Modskin'), 'error');
       return;
     }
     SoundEngine.playClick();
