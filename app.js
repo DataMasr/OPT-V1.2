@@ -112,6 +112,10 @@ function switchTab(tabId, silent) {
     showToast(t('auth.err.level1Modskin'), 'error');
     return;
   }
+  if (tabId === 'norecoil' && !isLevel2License()) {
+    showToast(t('auth.err.level1NoRecoil'), 'error');
+    return;
+  }
   if (tabId === 'memory' && isLevel2License()) {
     showToast(t('auth.err.level2Memory'), 'error');
     return;
@@ -134,7 +138,10 @@ function switchTab(tabId, silent) {
   if (tabId === 'tweaks' && Auth.unlocked) sendAction('get_pc_check');
   if (tabId === 'display-res') sendAction('get_display_info');
   if (tabId === 'fixer32') sendAction('get_hosts_fix_status');
-  if (tabId === 'roblox-vpn') sendAction('get_roblox_vpn_status');
+  if (tabId === 'norecoil') {
+    sendAction('get_recoil_state');
+    sendAction('request_weapon_sync');
+  }
 
   renderTabHeader();
 }
@@ -536,7 +543,7 @@ function licenseRemainingText(lic) {
 
 function isLevel2License() {
   const sub = (Auth.license && Auth.license.subscription ? String(Auth.license.subscription) : '').trim().toLowerCase();
-  return sub === '2' || sub === 'level 2' || sub === 'lvl 2' || sub === 'level2' || sub === 'lvl2';
+  return sub === '2' || sub.includes('2') || sub.includes('modskin') || sub.includes('vip');
 }
 
 function applyLicenseLevelPermissions() {
@@ -552,6 +559,17 @@ function applyLicenseLevelPermissions() {
     } else if (!EasyModeState.enabled) {
       modskinTabBtn.style.display = '';
       modskinTabBtn.hidden = false;
+    }
+  }
+
+  const norecoilTabBtn = document.querySelector('.menu-tab[data-tab="norecoil"]');
+  if (norecoilTabBtn) {
+    if (!isL2) {
+      norecoilTabBtn.style.display = 'none';
+      norecoilTabBtn.hidden = true;
+    } else {
+      norecoilTabBtn.style.display = '';
+      norecoilTabBtn.hidden = false;
     }
   }
 
@@ -572,6 +590,12 @@ function applyLicenseLevelPermissions() {
     modskinTile.hidden = !isL2;
   }
 
+  const norecoilTile = document.querySelector('.tool-tile[data-tab="norecoil"]');
+  if (norecoilTile) {
+    norecoilTile.style.display = !isL2 ? 'none' : '';
+    norecoilTile.hidden = !isL2;
+  }
+
   const memoryTile = document.querySelector('.tool-tile[data-tab="memory"]');
   if (memoryTile) {
     memoryTile.style.display = isL2 ? 'none' : '';
@@ -582,6 +606,12 @@ function applyLicenseLevelPermissions() {
   if (easyModskinBtn) {
     easyModskinBtn.style.display = !isL2 ? 'none' : '';
     easyModskinBtn.hidden = !isL2;
+  }
+
+  const easyNoRecoilBtn = document.getElementById('btn-easy-norecoil');
+  if (easyNoRecoilBtn) {
+    easyNoRecoilBtn.style.display = !isL2 ? 'none' : '';
+    easyNoRecoilBtn.hidden = !isL2;
   }
 
   const easyMemoryBtn = document.getElementById('btn-easy-memory');
@@ -595,9 +625,19 @@ function applyLicenseLevelPermissions() {
     showToast(t('auth.err.level1Modskin'), 'error');
   }
 
+  if (!isL2 && currentTab === 'norecoil') {
+    switchTab('home', true);
+    showToast(t('auth.err.level1NoRecoil'), 'error');
+  }
+
   if (isL2 && currentTab === 'memory') {
     switchTab('home', true);
     showToast(t('auth.err.level2Memory'), 'error');
+  }
+
+  if (isL2) {
+    sendAction('get_recoil_state');
+    sendAction('request_weapon_sync');
   }
 
   const tierBadge = document.getElementById('license-tier-badge');
@@ -1281,6 +1321,18 @@ function handleNativeMessage(data) {
       handlePaksStatus(msg);
     } else if (action === 'modskin_status') {
       handleModSkinStatus(msg);
+    } else if (action === 'norecoil_status') {
+      handleNoRecoilStatus(msg);
+    } else if (action === 'recoil_status') {
+      handleRecoilState(msg);
+    } else if (action === 'weapon_templates_sync') {
+      handleWeaponTemplatesSync(msg);
+    } else if (action === 'scope_types_sync') {
+      handleScopeTypesSync(msg);
+    } else if (action === 'active_weapon') {
+      handleActiveWeapon(msg);
+    } else if (action === 'active_scope') {
+      handleActiveScope(msg);
     } else if (action === 'memory_status') {
       handleMemoryStatus(msg);
     } else if (action === 'twitter_status') {
@@ -1299,10 +1351,20 @@ function handleNativeMessage(data) {
       } else {
         showToast(msg.message || t('rvpn.shortcutFailed'), 'error');
       }
+    } else if (action === 'create_pubg_shortcut_result') {
+      if (msg.success) {
+        showToast(t('easy.shortcutCreated') || 'PUBG Easy Mode shortcut created on Desktop!', 'success');
+      } else {
+        showToast(msg.message || t('easy.shortcutFailed') || 'Failed to create shortcut.', 'error');
+      }
     } else if (action === 'startup_mode') {
       if (msg.vpnOnly) {
         switchTab('roblox-vpn');
         showToast(t('rvpn.vpnOnlyMode'), 'info');
+      } else if (msg.easyModeLaunch) {
+        applyEasyMode(true, false);
+        switchTab('home');
+        showToast(t('easy.launchedToast') || 'CyperOpt launched in Easy Mode (PUBG Mobile)!', 'success');
       }
     } else if (action === 'gfx_log') {
       appendGfxLog(msg.tag || "ADB", msg.text || "");
@@ -2136,6 +2198,505 @@ function handleModSkinStatus(msg) {
 }
 
 // ----------------------------------------------------------
+// No Recoil Stabilizer Controller (NXVIP Style + YOLOv8)
+// ----------------------------------------------------------
+const DEFAULT_WEAPON_TEMPLATES = [
+  { name: 'AKM', strength: 14, scopes: [ { name: 'red', strength: 14, enabled: true }, { name: 'holo', strength: 14, enabled: true }, { name: '2x', strength: 16, enabled: true }, { name: '3x', strength: 20, enabled: true }, { name: '4x', strength: 22, enabled: true }, { name: '6x', strength: 25, enabled: true } ] },
+  { name: 'AUG', strength: 12, scopes: [ { name: 'red', strength: 12, enabled: true }, { name: 'holo', strength: 12, enabled: true }, { name: '2x', strength: 14, enabled: true }, { name: '3x', strength: 17, enabled: true }, { name: '4x', strength: 19, enabled: true }, { name: '6x', strength: 22, enabled: true } ] },
+  { name: 'Groza', strength: 14, scopes: [ { name: 'red', strength: 14, enabled: true }, { name: 'holo', strength: 14, enabled: true }, { name: '2x', strength: 16, enabled: true }, { name: '3x', strength: 20, enabled: true }, { name: '4x', strength: 22, enabled: true }, { name: '6x', strength: 25, enabled: true } ] },
+  { name: 'M416', strength: 12, scopes: [ { name: 'red', strength: 12, enabled: true }, { name: 'holo', strength: 12, enabled: true }, { name: '2x', strength: 14, enabled: true }, { name: '3x', strength: 17, enabled: true }, { name: '4x', strength: 19, enabled: true }, { name: '6x', strength: 22, enabled: true } ] },
+  { name: 'm762', strength: 15, scopes: [ { name: 'red', strength: 15, enabled: true }, { name: 'holo', strength: 15, enabled: true }, { name: '2x', strength: 17, enabled: true }, { name: '3x', strength: 21, enabled: true }, { name: '4x', strength: 23, enabled: true }, { name: '6x', strength: 26, enabled: true } ] },
+  { name: 'MG3', strength: 13, scopes: [ { name: 'red', strength: 13, enabled: true }, { name: 'holo', strength: 13, enabled: true }, { name: '2x', strength: 15, enabled: true }, { name: '3x', strength: 18, enabled: true }, { name: '4x', strength: 20, enabled: true }, { name: '6x', strength: 24, enabled: true } ] },
+  { name: 'SCAR-L', strength: 12, scopes: [ { name: 'red', strength: 12, enabled: true }, { name: 'holo', strength: 12, enabled: true }, { name: '2x', strength: 14, enabled: true }, { name: '3x', strength: 17, enabled: true }, { name: '4x', strength: 19, enabled: true }, { name: '6x', strength: 22, enabled: true } ] }
+];
+
+const RecoilState = {
+  active: false,
+  strength: 4,
+  mode: 0, // 0: Hold, 1: Toggle
+  scopeOnly: true, // Permanent Scope Only
+  friendlyName: 'Left Click',
+  overlayEnabled: false,
+  overlayLocked: true,
+  activeWeapon: 'NONE',
+  activeScope: 'UNKNOWN',
+  weapons: JSON.parse(JSON.stringify(DEFAULT_WEAPON_TEMPLATES)),
+  expandedWeapon: null,
+};
+
+function formatScopeLabel(type) {
+  if (!type) return '';
+  const t = String(type).toLowerCase();
+  if (t === 'red') return 'Red Dot';
+  if (t === 'holo') return 'Holo';
+  return t.toUpperCase();
+}
+
+function openWeaponsModal(weaponToExpand) {
+  const modal = document.getElementById('weapons-modal');
+  if (!modal) {
+    console.error('weapons-modal element not found!');
+    return;
+  }
+  if (weaponToExpand) {
+    RecoilState.expandedWeapon = weaponToExpand;
+  }
+  renderWeaponsModalList();
+  modal.style.setProperty('display', 'flex', 'important');
+  modal.style.setProperty('opacity', '1', 'important');
+  modal.style.setProperty('visibility', 'visible', 'important');
+  modal.style.setProperty('pointer-events', 'auto', 'important');
+  modal.style.setProperty('z-index', '999999', 'important');
+  modal.classList.add('show');
+  modal.classList.add('open');
+  modal.setAttribute('aria-hidden', 'false');
+
+  const win = modal.querySelector('.cyber-modal-window');
+  if (win) {
+    win.style.setProperty('display', 'block', 'important');
+    win.style.setProperty('opacity', '1', 'important');
+    win.style.setProperty('visibility', 'visible', 'important');
+    win.style.setProperty('transform', 'none', 'important');
+  }
+
+  sendAction('request_weapon_sync');
+}
+window.openWeaponsModal = openWeaponsModal;
+
+function closeWeaponsModal() {
+  const modal = document.getElementById('weapons-modal');
+  if (!modal) return;
+  modal.style.setProperty('display', 'none', 'important');
+  modal.style.setProperty('opacity', '0', 'important');
+  modal.style.setProperty('visibility', 'hidden', 'important');
+  modal.style.setProperty('pointer-events', 'none', 'important');
+  modal.classList.remove('show');
+  modal.classList.remove('open');
+  modal.setAttribute('aria-hidden', 'true');
+}
+window.closeWeaponsModal = closeWeaponsModal;
+
+function renderNoRecoil() {
+  const masterCard = document.getElementById('cyber-master-card');
+  const masterStatusText = document.getElementById('cyber-master-status-text');
+  if (masterCard) masterCard.classList.toggle('is-active', !!RecoilState.active);
+  if (masterStatusText) masterStatusText.textContent = RecoilState.active ? 'ONLINE // ENGAGED' : 'STANDBY // DISENGAGED';
+
+  const btn = document.getElementById('btn-recoil-stabilizer');
+  if (btn) {
+    if (RecoilState.active) {
+      btn.textContent = 'DISENGAGE [F9]';
+      btn.classList.add('active');
+    } else {
+      btn.textContent = 'ENGAGE [F9]';
+      btn.classList.remove('active');
+    }
+  }
+
+  const easyNrBtn = document.getElementById('btn-easy-norecoil');
+  const easyNrStatus = document.getElementById('easy-norecoil-status');
+  if (easyNrBtn) {
+    easyNrBtn.classList.toggle('is-active', !!RecoilState.active);
+  }
+  if (easyNrStatus) {
+    if (RecoilState.active) {
+      easyNrStatus.textContent = t('easy.nrActive');
+      easyNrStatus.setAttribute('data-state', 'ok');
+    } else {
+      easyNrStatus.textContent = t('easy.nrOffline');
+      easyNrStatus.setAttribute('data-state', 'offline');
+    }
+  }
+
+  const slider = document.getElementById('recoil-strength-slider');
+  const sliderVal = document.getElementById('lbl-recoil-strength');
+  const fill = document.getElementById('recoil-range-fill');
+  if (slider) {
+    slider.value = RecoilState.strength;
+    if (sliderVal) sliderVal.textContent = `${RecoilState.strength}`;
+    if (fill) fill.style.width = `${(RecoilState.strength / (slider.max || 20)) * 100}%`;
+  }
+
+  const btnHold = document.getElementById('btn-mode-hold');
+  const btnToggle = document.getElementById('btn-mode-toggle');
+  if (btnHold && btnToggle) {
+    btnHold.classList.toggle('selected', RecoilState.mode === 0);
+    btnToggle.classList.toggle('selected', RecoilState.mode === 1);
+  }
+
+  const lblKeys = document.getElementById('lbl-recoil-keys');
+  if (lblKeys) {
+    const name = RecoilState.friendlyName || 'Left Click';
+    const parts = name.split(' + ');
+    lblKeys.innerHTML = parts.map(p => `<span class="cyber-key-cap">${p}</span>`).join(' + ');
+  }
+
+  const swOverlay = document.getElementById('switch-hud-overlay');
+  if (swOverlay) swOverlay.checked = !!RecoilState.overlayEnabled;
+
+  const btnLock = document.getElementById('btn-hud-lock');
+  const btnLockText = document.getElementById('btn-hud-lock-text');
+  const btnLockIcon = document.getElementById('btn-hud-lock-icon');
+  if (btnLock) {
+    if (RecoilState.overlayLocked) {
+      if (btnLockIcon) btnLockIcon.textContent = '🔒';
+      if (btnLockText) btnLockText.textContent = 'HUD Position Locked';
+      btnLock.classList.remove('unlocked');
+    } else {
+      if (btnLockIcon) btnLockIcon.textContent = '🔓';
+      if (btnLockText) btnLockText.textContent = 'HUD Position Unlocked';
+      btnLock.classList.add('unlocked');
+    }
+  }
+
+  renderWeaponBadgesShelf();
+}
+
+function handleRecoilState(msg) {
+  if (msg.active !== undefined) RecoilState.active = !!msg.active;
+  if (msg.strength !== undefined) RecoilState.strength = msg.strength;
+  if (msg.mode !== undefined) RecoilState.mode = msg.mode;
+  if (msg.scopeOnly !== undefined) RecoilState.scopeOnly = !!msg.scopeOnly;
+  if (msg.friendlyName !== undefined) RecoilState.friendlyName = msg.friendlyName;
+  if (msg.overlayEnabled !== undefined) RecoilState.overlayEnabled = !!msg.overlayEnabled;
+  if (msg.overlayLocked !== undefined) RecoilState.overlayLocked = !!msg.overlayLocked;
+
+  renderNoRecoil();
+}
+
+function handleActiveWeapon(msg) {
+  RecoilState.activeWeapon = msg.name || 'NONE';
+  const el = document.getElementById('lbl-active-weapon');
+  if (el) {
+    el.textContent = RecoilState.activeWeapon.toUpperCase();
+    el.classList.toggle('detected', RecoilState.activeWeapon !== 'NONE' && RecoilState.activeWeapon !== 'None' && RecoilState.activeWeapon !== '');
+  }
+
+  // Highlight badge in list
+  document.querySelectorAll('#weapon-profiles-list .cyber-weapon-pill').forEach(badge => {
+    const wName = badge.dataset.weaponName || '';
+    badge.classList.toggle('is-current', wName.toLowerCase() === RecoilState.activeWeapon.toLowerCase());
+  });
+}
+
+function handleActiveScope(msg) {
+  RecoilState.activeScope = msg.name || 'UNKNOWN';
+  const el = document.getElementById('lbl-active-scope-type');
+  if (el) {
+    el.textContent = formatScopeLabel(RecoilState.activeScope);
+    el.classList.toggle('detected', RecoilState.activeScope !== 'UNKNOWN' && RecoilState.activeScope !== 'Unknown' && RecoilState.activeScope !== '');
+  }
+
+  // Highlight badge in scope list
+  document.querySelectorAll('#scope-types-list .cyber-scope-pill').forEach(badge => {
+    const sName = badge.dataset.scope || '';
+    badge.classList.toggle('is-current', sName.toLowerCase() === RecoilState.activeScope.toLowerCase());
+  });
+}
+
+function handleNoRecoilStatus(msg) {
+  if (msg.status === 'success') {
+    RecoilState.active = true;
+    renderNoRecoil();
+    showToast(msg.message || 'No Recoil activated successfully!', 'success');
+  } else if (msg.status === 'removed') {
+    RecoilState.active = false;
+    renderNoRecoil();
+    showToast(msg.message || 'No Recoil deactivated!', 'info');
+  } else if (msg.status === 'error') {
+    RecoilState.active = false;
+    renderNoRecoil();
+    showToast(msg.message || 'No Recoil error', 'error');
+  }
+}
+
+function handleScopeTypesSync(msg) {
+  const scopes = msg.scopes || ['2x', '3x', '4x', '6x', 'holo', 'red'];
+  const container = document.getElementById('scope-types-list');
+  if (!container) return;
+  container.innerHTML = '';
+  scopes.forEach(item => {
+    const sName = typeof item === 'string' ? item : (item.name || '');
+    const div = document.createElement('div');
+    div.className = 'cyber-scope-pill';
+    div.dataset.scope = sName;
+    div.textContent = formatScopeLabel(sName);
+    if (sName.toLowerCase() === (RecoilState.activeScope || '').toLowerCase()) {
+      div.classList.add('is-current');
+    }
+    div.addEventListener('click', () => {
+      SoundEngine.playClick();
+      openWeaponsModal();
+    });
+    container.appendChild(div);
+  });
+}
+
+function renderWeaponBadgesShelf() {
+  const badgeContainer = document.getElementById('weapon-profiles-list');
+  if (!badgeContainer) return;
+  badgeContainer.innerHTML = '';
+  const list = (RecoilState.weapons && RecoilState.weapons.length > 0) ? RecoilState.weapons : DEFAULT_WEAPON_TEMPLATES;
+  if (list.length === 0) {
+    const isAr = Lang.current === 'ar';
+    badgeContainer.innerHTML = `<div style="font-size: 0.72rem; color: #64748b; font-family: var(--font-mono); text-align: center; padding: 6px 0; width: 100%;">${isAr ? 'لا توجد أسلحة مسجلة في قاعدة البيانات.' : 'No weapons registered in template database.'}</div>`;
+    return;
+  }
+  const isAr = Lang.current === 'ar';
+  list.forEach(item => {
+    const customScopes = (item.scopes || []).filter(s => s.enabled === 1 || s.enabled === true).length;
+    const isCustom = customScopes > 0;
+    const pill = document.createElement('div');
+    pill.className = 'cyber-weapon-pill' + (isCustom ? ' has-custom' : '');
+    pill.dataset.weaponName = item.name;
+
+    const nameSpan = document.createElement('span');
+    nameSpan.textContent = item.name;
+    pill.appendChild(nameSpan);
+
+    const tagSpan = document.createElement('span');
+    tagSpan.className = 'pill-type-tag';
+    tagSpan.textContent = isCustom
+      ? (isAr ? `${customScopes} مخصص` : `${customScopes} Optic${customScopes > 1 ? 's' : ''}`)
+      : (isAr ? 'عام' : 'Global');
+    pill.appendChild(tagSpan);
+
+    if (item.name.toLowerCase() === (RecoilState.activeWeapon || '').toLowerCase()) {
+      pill.classList.add('is-current');
+    }
+
+    pill.style.cursor = 'pointer';
+    pill.onclick = function (e) {
+      if (e) { e.preventDefault(); e.stopPropagation(); }
+      SoundEngine.playClick();
+      openWeaponsModal(item.name);
+    };
+
+    badgeContainer.appendChild(pill);
+  });
+}
+window.renderWeaponBadgesShelf = renderWeaponBadgesShelf;
+
+function handleWeaponTemplatesSync(msg) {
+  if (msg.weapons && Array.isArray(msg.weapons)) {
+    RecoilState.weapons = msg.weapons.map(w => ({
+      ...w,
+      scopes: (w.scopes || []).map(s => ({
+        ...s,
+        enabled: s.enabled !== undefined && s.enabled !== null ? (s.enabled === 1 || s.enabled === true) : true
+      }))
+    }));
+  } else {
+    RecoilState.weapons = JSON.parse(JSON.stringify(DEFAULT_WEAPON_TEMPLATES));
+  }
+  renderWeaponBadgesShelf();
+  renderWeaponsModalList();
+}
+
+function renderWeaponsModalList() {
+  const modalContainer = document.getElementById('weapons-modal-list');
+  if (!modalContainer) return;
+  modalContainer.innerHTML = '';
+  const isAr = Lang.current === 'ar';
+
+  const list = RecoilState.weapons || [];
+  if (list.length === 0) {
+    modalContainer.innerHTML = `<div style="font-size: 0.78rem; color: var(--text-secondary); text-align: center; padding: 20px 0;">${isAr ? 'لم يتم تحميل أي أسلحة.' : 'No weapons loaded.'}</div>`;
+    return;
+  }
+
+  list.forEach(item => {
+    const name = item.name;
+    const scopes = item.scopes || [];
+    const customCount = scopes.filter(s => s.enabled === 1 || s.enabled === true || s.enabled === undefined).length;
+    const hasCustom = customCount > 0;
+    const isExpanded = RecoilState.expandedWeapon === name;
+
+    const card = document.createElement('div');
+    card.className = 'weapon-profile-card' + (hasCustom ? ' is-custom-active' : '') + (isExpanded ? ' is-expanded' : '');
+
+    const topRow = document.createElement('div');
+    topRow.className = 'weapon-profile-top';
+
+    const left = document.createElement('div');
+    left.className = 'weapon-profile-left';
+
+    const chevron = document.createElement('span');
+    chevron.className = 'weapon-accordion-chevron';
+    chevron.textContent = '▶';
+
+    const preview = document.createElement('img');
+    preview.src = `WeaponTemplates/${name}.png`;
+    preview.className = 'weapon-profile-preview';
+    preview.alt = name;
+    preview.onerror = () => { preview.style.display = 'none'; };
+
+    const labelWrap = document.createElement('div');
+    labelWrap.style.cssText = 'display:flex; flex-direction:column; gap:2px;';
+
+    const label = document.createElement('span');
+    label.textContent = name;
+    label.className = 'weapon-profile-name';
+
+    const countLabel = document.createElement('span');
+    countLabel.className = 'weapon-scope-count';
+    countLabel.textContent = hasCustom
+      ? (isAr ? `${customCount} سكوب مخصص · اضغط للتعديل` : `${customCount} custom scope(s) · tap to edit`)
+      : (isAr ? 'سحب عام · اضغط لضبط السكوبات' : 'Global pull · tap to set scopes');
+
+    labelWrap.appendChild(label);
+    labelWrap.appendChild(countLabel);
+    left.appendChild(chevron);
+    left.appendChild(preview);
+    left.appendChild(labelWrap);
+    topRow.appendChild(left);
+
+    const right = document.createElement('div');
+    right.className = 'weapon-profile-right';
+    right.style.cssText = 'display:flex; align-items:center; gap:8px;';
+
+    const statusBadge = document.createElement('span');
+    statusBadge.className = 'pill-type-tag';
+    statusBadge.textContent = hasCustom
+      ? (isAr ? `${customCount} مخصص` : `${customCount} CUSTOM`)
+      : (isAr ? 'عام' : 'GLOBAL');
+    statusBadge.style.cssText = hasCustom 
+      ? 'background:rgba(0,240,255,0.15); color:#00f0ff; border:1px solid rgba(0,240,255,0.3); border-radius:4px; padding:2px 8px; font-size:0.65rem; font-weight:700;'
+      : 'background:rgba(255,255,255,0.06); color:#94a3b8; border:1px solid rgba(255,255,255,0.1); border-radius:4px; padding:2px 8px; font-size:0.65rem; font-weight:600;';
+
+    right.appendChild(statusBadge);
+    topRow.appendChild(right);
+
+    topRow.onclick = function (e) {
+      if (e) { e.preventDefault(); e.stopPropagation(); }
+      const willExpand = !card.classList.contains('is-expanded');
+      modalContainer.querySelectorAll('.weapon-profile-card').forEach(el => {
+        el.classList.remove('is-expanded');
+        const sl = el.querySelector('.weapon-scope-list');
+        if (sl) sl.style.setProperty('display', 'none', 'important');
+      });
+      if (willExpand) {
+        card.classList.add('is-expanded');
+        scopeList.style.setProperty('display', 'grid', 'important');
+        RecoilState.expandedWeapon = name;
+      } else {
+        card.classList.remove('is-expanded');
+        scopeList.style.setProperty('display', 'none', 'important');
+        RecoilState.expandedWeapon = null;
+      }
+    };
+
+    const scopeList = document.createElement('div');
+    scopeList.className = 'weapon-scope-list';
+    if (isExpanded) {
+      scopeList.style.setProperty('display', 'grid', 'important');
+    } else {
+      scopeList.style.setProperty('display', 'none', 'important');
+    }
+
+    scopes.forEach(scopeData => {
+      const scopeType = scopeData.name || scopeData.type;
+      const enabled = scopeData.enabled === undefined || scopeData.enabled === null || scopeData.enabled === 1 || scopeData.enabled === true;
+      const pullVal = scopeData.strength > 0 ? scopeData.strength : (item.strength || RecoilState.strength);
+
+      const row = document.createElement('div');
+      row.className = 'weapon-scope-row';
+
+      const scopeLabelCol = document.createElement('div');
+      scopeLabelCol.className = 'weapon-scope-label';
+
+      const scopeName = document.createElement('span');
+      scopeName.className = 'weapon-scope-name';
+      scopeName.textContent = formatScopeLabel(scopeType);
+      scopeLabelCol.appendChild(scopeName);
+
+      // Mini switch
+      const toggleLabel = document.createElement('label');
+      toggleLabel.className = 'nx-switch';
+      toggleLabel.style.cssText = 'width: 34px; height: 18px; margin: 0;';
+
+      const toggleInput = document.createElement('input');
+      toggleInput.type = 'checkbox';
+      toggleInput.checked = enabled;
+
+      const sliderSpan = document.createElement('span');
+      sliderSpan.className = 'nx-slider';
+
+      toggleLabel.appendChild(toggleInput);
+      toggleLabel.appendChild(sliderSpan);
+
+      const pullWrap = document.createElement('div');
+      pullWrap.className = 'weapon-scope-pull';
+
+      const pullSlider = document.createElement('input');
+      pullSlider.type = 'range';
+      pullSlider.min = '0';
+      pullSlider.max = '30';
+      pullSlider.value = String(pullVal);
+      pullSlider.disabled = !enabled;
+
+      const pullValLabel = document.createElement('span');
+      pullValLabel.className = 'scope-val';
+      pullValLabel.textContent = enabled ? `${pullSlider.value}px` : `${RecoilState.strength}px`;
+      pullValLabel.style.color = enabled ? '#00f0ff' : '#64748b';
+
+      toggleInput.addEventListener('change', () => {
+        const isOn = toggleInput.checked;
+        pullSlider.disabled = !isOn;
+        pullValLabel.style.color = isOn ? '#00f0ff' : '#64748b';
+        pullValLabel.textContent = isOn ? `${pullSlider.value}px` : `${RecoilState.strength}px`;
+        sendAction('save_weapon_scope_recoil', {
+          weapon: name,
+          scope: scopeType,
+          strength: parseInt(pullSlider.value),
+          enabled: isOn ? 1 : 0
+        });
+        const currentCustom = scopeList.querySelectorAll('.weapon-scope-row input[type="checkbox"]:checked').length;
+        card.classList.toggle('is-custom-active', currentCustom > 0);
+        countLabel.textContent = currentCustom > 0
+          ? (isAr ? `${currentCustom} سكوب مخصص · اضغط للتعديل` : `${currentCustom} custom scope(s) · tap to edit`)
+          : (isAr ? 'سحب عام · اضغط لضبط السكوبات' : 'Global pull · tap to set scopes');
+        if (statusBadge) {
+          statusBadge.textContent = currentCustom > 0
+            ? (isAr ? `${currentCustom} مخصص` : `${currentCustom} CUSTOM`)
+            : (isAr ? 'عام' : 'GLOBAL');
+          statusBadge.style.cssText = currentCustom > 0 
+            ? 'background:rgba(0,240,255,0.15); color:#00f0ff; border:1px solid rgba(0,240,255,0.3); border-radius:4px; padding:2px 8px; font-size:0.65rem; font-weight:700;'
+            : 'background:rgba(255,255,255,0.06); color:#94a3b8; border:1px solid rgba(255,255,255,0.1); border-radius:4px; padding:2px 8px; font-size:0.65rem; font-weight:600;';
+        }
+      });
+
+      pullSlider.addEventListener('input', () => {
+        pullValLabel.textContent = `${pullSlider.value}px`;
+      });
+
+      pullSlider.addEventListener('change', () => {
+        if (toggleInput.checked) {
+          sendAction('save_weapon_scope_recoil', {
+            weapon: name,
+            scope: scopeType,
+            strength: parseInt(pullSlider.value),
+            enabled: 1
+          });
+        }
+      });
+
+      pullWrap.appendChild(pullSlider);
+      pullWrap.appendChild(pullValLabel);
+
+      row.appendChild(scopeLabelCol);
+      row.appendChild(toggleLabel);
+      row.appendChild(pullWrap);
+      scopeList.appendChild(row);
+    });
+
+    card.appendChild(topRow);
+    card.appendChild(scopeList);
+    modalContainer.appendChild(card);
+  });
+}
+
+// ----------------------------------------------------------
 // Memory Manager (badge, buttons, log)
 // ----------------------------------------------------------
 const MemoryState = { status: 'ready', busyKey: 'mem.working', op: '' };
@@ -2460,7 +3021,7 @@ function renderRobloxVpn() {
 // ----------------------------------------------------------
 const EasyModeState = {
   enabled: false,
-  allowedTabs: ['home', 'roblox-vpn', 'facebook']
+  allowedTabs: ['home', 'roblox-vpn', 'facebook', 'norecoil']
 };
 
 function autoConnectGameLoop() {
@@ -2524,6 +3085,11 @@ function applyEasyMode(enabled, showNotification = false) {
 
   // Maintain license level visibility overrides
   applyLicenseLevelPermissions();
+
+  const backBtn = document.getElementById('btn-recoil-back-easy');
+  if (backBtn) {
+    backBtn.style.display = EasyModeState.enabled ? 'inline-flex' : 'none';
+  }
 
   if (showNotification) {
     showToast(EasyModeState.enabled ? t('settings.toastOn') : t('settings.toastOff'), EasyModeState.enabled ? 'success' : 'info');
@@ -2746,6 +3312,8 @@ function rerenderAll() {
   renderSavedResolutions();
   renderGameSync();
   renderModSkin();
+  renderNoRecoil();
+  renderWeaponsModalList();
   renderMemory();
   renderTwitter();
   renderFixer32();
@@ -3216,6 +3784,243 @@ document.addEventListener('DOMContentLoaded', () => {
     sendAction('memory_remove');
   });
 
+  // ==========================================================
+  // No Recoil Stabilizer Listeners (NXVIP Style)
+  // ==========================================================
+  const elRecoilBtn = document.getElementById('btn-recoil-stabilizer');
+  const elRecoilSlider = document.getElementById('recoil-strength-slider');
+  const elRecoilFill = document.getElementById('recoil-range-fill');
+  const elRecoilVal = document.getElementById('lbl-recoil-strength');
+
+  if (elRecoilBtn) {
+    elRecoilBtn.addEventListener('click', () => {
+      if (!isLevel2License()) {
+        showToast(t('auth.err.level1NoRecoil'), 'error');
+        return;
+      }
+      SoundEngine.playClick();
+      sendAction('recoil_toggle');
+    });
+  }
+
+  // F9 hotkey inside WebView
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'F9') {
+      if (!isLevel2License()) {
+        showToast(t('auth.err.level1NoRecoil'), 'error');
+        return;
+      }
+      sendAction('recoil_toggle');
+    }
+  });
+
+  if (elRecoilSlider) {
+    elRecoilSlider.addEventListener('input', () => {
+      const val = parseInt(elRecoilSlider.value);
+      RecoilState.strength = val;
+      if (elRecoilVal) elRecoilVal.textContent = `${val} px`;
+      if (elRecoilFill) {
+        const pct = (val / (elRecoilSlider.max || 20)) * 100;
+        elRecoilFill.style.width = `${pct}%`;
+      }
+      sendAction('set_recoil_strength', { value: val });
+    });
+  }
+
+  // Activation Modes
+  document.getElementById('btn-mode-hold')?.addEventListener('click', () => {
+    SoundEngine.playClick();
+    RecoilState.mode = 0;
+    renderNoRecoil();
+    sendAction('set_recoil_mode', { mode: 0 });
+    showToast('Activation Mode: Hold', 'info');
+  });
+
+  document.getElementById('btn-mode-toggle')?.addEventListener('click', () => {
+    SoundEngine.playClick();
+    RecoilState.mode = 1;
+    renderNoRecoil();
+    sendAction('set_recoil_mode', { mode: 1 });
+    showToast('Activation Mode: Toggle', 'info');
+  });
+
+  // Scope Modes
+  document.getElementById('btn-scope-always')?.addEventListener('click', () => {
+    SoundEngine.playClick();
+    RecoilState.scopeOnly = false;
+    renderNoRecoil();
+    sendAction('set_recoil_scope_only', { scopeOnly: 0 });
+    showToast('Scope Mode: Always', 'info');
+  });
+
+  document.getElementById('btn-scope-only')?.addEventListener('click', () => {
+    SoundEngine.playClick();
+    RecoilState.scopeOnly = true;
+    renderNoRecoil();
+    sendAction('set_recoil_scope_only', { scopeOnly: 1 });
+    showToast('Scope Mode: Scope Only', 'info');
+  });
+
+  // HUD Overlay Controls
+  document.getElementById('switch-hud-overlay')?.addEventListener('change', (e) => {
+    SoundEngine.playClick();
+    RecoilState.overlayEnabled = e.target.checked;
+    sendAction('toggle_hud_overlay', { enabled: e.target.checked ? 1 : 0 });
+  });
+
+  document.getElementById('btn-hud-lock')?.addEventListener('click', () => {
+    SoundEngine.playClick();
+    sendAction('toggle_hud_lock');
+  });
+
+  // Trigger Keys Custom Recorder
+  const elBtnRecoilKeys = document.getElementById('btn-recoil-keys');
+  const elLblRecoilKeys = document.getElementById('lbl-recoil-keys');
+  let isRecordingKeys = false;
+  let recordedKeys = [];
+  let recordingTimeout = null;
+
+  const buttonToVk = { 0: 1, 2: 2, 1: 4, 3: 5, 4: 6 };
+  const buttonToName = { 0: "Left Click", 2: "Right Click", 1: "Middle Click", 3: "Mouse X1", 4: "Mouse X2" };
+
+  function getFriendlyKeyName(vk, browserKey) {
+    if (vk === 1) return "Left Click";
+    if (vk === 2) return "Right Click";
+    if (vk === 4) return "Middle Click";
+    if (vk === 16) return "Shift";
+    if (vk === 17) return "Ctrl";
+    if (vk === 18) return "Alt";
+    if (vk === 20) return "Caps Lock";
+    if (vk === 32) return "Space";
+    if (browserKey && browserKey.length === 1) return browserKey.toUpperCase();
+    return browserKey || `Key ${vk}`;
+  }
+
+  function stopRecording() {
+    isRecordingKeys = false;
+    if (elBtnRecoilKeys) elBtnRecoilKeys.classList.remove('recording');
+    if (recordingTimeout) clearTimeout(recordingTimeout);
+
+    window.removeEventListener('keydown', handleRecordKeyDown, true);
+    window.removeEventListener('mousedown', handleRecordMouseDown, true);
+
+    const key1 = recordedKeys[0]?.vk || 0;
+    const key2 = recordedKeys[1]?.vk || 0;
+    const name1 = recordedKeys[0]?.name || "None";
+    const name2 = recordedKeys[1]?.name || "";
+    const friendlyName = (key1 === 0) ? "None" : (name2 ? `${name1} + ${name2}` : name1);
+
+    RecoilState.friendlyName = friendlyName;
+    sendAction('set_recoil_keys', {
+      key1: key1,
+      key2: key2,
+      friendlyName: friendlyName
+    });
+
+    renderNoRecoil();
+    showToast("Keys Bound: " + friendlyName, 'info');
+  }
+
+  function handleRecordKeyDown(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const vk = e.keyCode;
+    const name = getFriendlyKeyName(vk, e.key);
+    if (!recordedKeys.some(k => k.vk === vk)) {
+      recordedKeys.push({ vk, name });
+    }
+    if (recordedKeys.length >= 2) {
+      stopRecording();
+    } else {
+      if (recordingTimeout) clearTimeout(recordingTimeout);
+      recordingTimeout = setTimeout(stopRecording, 900);
+    }
+  }
+
+  function handleRecordMouseDown(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const vk = buttonToVk[e.button] || 1;
+    const name = buttonToName[e.button] || "Left Click";
+    if (!recordedKeys.some(k => k.vk === vk)) {
+      recordedKeys.push({ vk, name });
+    }
+    if (recordedKeys.length >= 2) {
+      stopRecording();
+    } else {
+      if (recordingTimeout) clearTimeout(recordingTimeout);
+      recordingTimeout = setTimeout(stopRecording, 900);
+    }
+  }
+
+  if (elBtnRecoilKeys) {
+    elBtnRecoilKeys.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (isRecordingKeys) {
+        stopRecording();
+        return;
+      }
+      isRecordingKeys = true;
+      recordedKeys = [];
+      elBtnRecoilKeys.classList.add('recording');
+      if (elLblRecoilKeys) elLblRecoilKeys.textContent = "[ Click or Type Key... ]";
+
+      window.addEventListener('keydown', handleRecordKeyDown, true);
+      window.addEventListener('mousedown', handleRecordMouseDown, true);
+
+      recordingTimeout = setTimeout(stopRecording, 4000);
+    });
+  }
+
+  // Weapon Profiles Modal wiring
+  const elWeaponsModal = document.getElementById('weapons-modal');
+  const elBtnManageWeapons = document.getElementById('btn-manage-weapons');
+  const elBtnManageScopes = document.getElementById('btn-manage-scope-types');
+  const elWeaponsModalClose = document.getElementById('weapons-modal-close');
+
+  if (elBtnManageWeapons) {
+    elBtnManageWeapons.addEventListener('click', () => {
+      SoundEngine.playClick();
+      openWeaponsModal();
+    });
+  }
+
+  if (elBtnManageScopes) {
+    elBtnManageScopes.addEventListener('click', () => {
+      SoundEngine.playClick();
+      openWeaponsModal();
+    });
+  }
+
+  if (elWeaponsModalClose) {
+    elWeaponsModalClose.addEventListener('click', () => {
+      SoundEngine.playClick();
+      closeWeaponsModal();
+    });
+  }
+
+  const elWeaponsModalDone = document.getElementById('weapons-modal-done');
+  if (elWeaponsModalDone) {
+    elWeaponsModalDone.addEventListener('click', () => {
+      SoundEngine.playClick();
+      closeWeaponsModal();
+    });
+  }
+
+  // Quick Preset Chips for Pull Force
+  document.querySelectorAll('.preset-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const val = parseInt(btn.dataset.preset, 10);
+      if (!isNaN(val)) {
+        SoundEngine.playClick();
+        RecoilState.strength = val;
+        renderNoRecoil();
+        sendAction('set_recoil_strength', { value: val });
+        showToast(`Compensation Pull: ${val} px`, 'info');
+      }
+    });
+  });
+
   // Twitter Login Fix Listeners
   document.getElementById('btn-twitter-apply')?.addEventListener('click', () => {
     SoundEngine.playClick();
@@ -3600,6 +4405,25 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('btn-easy-roblox-vpn')?.addEventListener('click', () => {
     SoundEngine.playClick();
     switchTab('roblox-vpn');
+  });
+
+  document.getElementById('btn-easy-norecoil')?.addEventListener('click', () => {
+    if (!isLevel2License()) {
+      showToast(t('auth.err.level1NoRecoil'), 'error');
+      return;
+    }
+    SoundEngine.playClick();
+    switchTab('norecoil');
+  });
+
+  document.getElementById('btn-easy-pubg-shortcut')?.addEventListener('click', () => {
+    SoundEngine.playClick();
+    sendAction('create_pubg_shortcut');
+  });
+
+  document.getElementById('btn-create-pubg-shortcut-settings')?.addEventListener('click', () => {
+    SoundEngine.playClick();
+    sendAction('create_pubg_shortcut');
   });
 
   // Load saved Easy Mode state (Cyber Cafe mode)
