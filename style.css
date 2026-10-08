@@ -161,7 +161,7 @@ input:focus-visible {
   position: absolute;
   inset: 0;
   background-size: 44px 44px;
-  background-image: 
+  background-image:
     linear-gradient(to right, rgba(255, 255, 255, 0.015) 1px, transparent 1px),
     linear-gradient(to bottom, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
   opacity: 0.45;
@@ -3745,6 +3745,27 @@ body.license-level-2 #tab-memory {
   border: 1px solid rgba(250, 204, 21, 0.35);
 }
 
+.license-badge.license-badge-l3 {
+  background: rgba(16, 185, 129, 0.18);
+  color: #34d399;
+  border: 1px solid rgba(52, 211, 153, 0.35);
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.25);
+}
+
+/* Level 3 License Restrictions (Roblox VPN ONLY - Isolated Mode) */
+body.license-level-3 .menu-tab:not([data-tab="roblox-vpn"]),
+body.license-level-3 .menu-group:not(.menu-group-vpn),
+body.license-level-3 .menu-group:not(.menu-group-vpn) .menu-group-label,
+body.license-level-3 .sidebar-status-card .status-row,
+body.license-level-3 #header-bridge-chip,
+body.license-level-3 #header-easy-badge,
+body.license-level-3 .easy-mode-toggle,
+body.license-level-3 #btn-easy-mode-toggle,
+body.license-level-3 #btn-reload-specs,
+body.license-level-3 .tab-view:not(#tab-roblox-vpn) {
+  display: none !important;
+}
+
 /* ==================== MODSKIN TAB ==================== */
 .modskin-container {
   display: flex;
@@ -4886,8 +4907,15 @@ html[dir="rtl"] .auth-submit-arrow {
 }
 
 @keyframes authUpdateFadeIn {
-  from { opacity: 0; transform: translateY(-6px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .auth-update-header {
@@ -4920,7 +4948,9 @@ html[dir="rtl"] .auth-submit-arrow {
 }
 
 @keyframes authUpdateSpin {
-  100% { transform: rotate(360deg); }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .auth-update-icon {
@@ -4937,6 +4967,7 @@ html[dir="rtl"] .auth-submit-arrow {
 body[dir="rtl"] .auth-update-info {
   text-align: right;
 }
+
 body:not([dir="rtl"]) .auth-update-info {
   text-align: left;
 }
@@ -4980,14 +5011,22 @@ body:not([dir="rtl"]) .auth-update-info {
 .auth-update-progress-fill::after {
   content: '';
   position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
   animation: authUpdateShimmer 1.8s infinite;
 }
 
 @keyframes authUpdateShimmer {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
+  0% {
+    transform: translateX(-100%);
+  }
+
+  100% {
+    transform: translateX(100%);
+  }
 }
 
 .auth-update-meta {
@@ -5015,7 +5054,8 @@ body:not([dir="rtl"]) .auth-update-info {
   display: none !important;
 }
 
-.btn-update-retry, .btn-update-browser {
+.btn-update-retry,
+.btn-update-browser {
   flex: 1;
   height: 32px;
   border-radius: 6px;
@@ -6181,8 +6221,13 @@ body:not([dir="rtl"]) .auth-update-info {
 }
 
 @keyframes easyBadgeGlow {
-  0% { box-shadow: 0 0 10px rgba(56, 189, 248, 0.15); }
-  100% { box-shadow: 0 0 20px rgba(56, 189, 248, 0.16); }
+  0% {
+    box-shadow: 0 0 10px rgba(56, 189, 248, 0.15);
+  }
+
+  100% {
+    box-shadow: 0 0 20px rgba(56, 189, 248, 0.16);
+  }
 }
 
 .settings-modal-overlay {
@@ -6222,8 +6267,15 @@ body:not([dir="rtl"]) .auth-update-info {
 }
 
 @keyframes modalPopIn {
-  from { opacity: 0; transform: scale(0.95) translateY(8px); }
-  to { opacity: 1; transform: scale(1) translateY(0); }
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
 }
 
 .settings-modal-header {
@@ -6749,28 +6801,60 @@ body.is-easy-mode .easy-dashboard {
 }
 
 @keyframes cyber-spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 @keyframes cyber-spin-reverse {
-  0% { transform: rotate(360deg); }
-  100% { transform: rotate(0deg); }
+  0% {
+    transform: rotate(360deg);
+  }
+
+  100% {
+    transform: rotate(0deg);
+  }
 }
 
 @keyframes pulse-core {
-  0%, 100% { transform: scale(1); opacity: 0.85; }
-  50% { transform: scale(1.1); opacity: 1; filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.16)); }
+
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.85;
+  }
+
+  50% {
+    transform: scale(1.1);
+    opacity: 1;
+    filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.16));
+  }
 }
 
 @keyframes cyber-scan-loader {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(250%); }
+  0% {
+    transform: translateX(-100%);
+  }
+
+  100% {
+    transform: translateX(250%);
+  }
 }
 
 @keyframes pop-in {
-  0% { transform: scale(0.4); opacity: 0; }
-  100% { transform: scale(1); opacity: 1; }
+  0% {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 /* ==========================================================
@@ -6879,9 +6963,17 @@ body.is-easy-mode .easy-dashboard {
 }
 
 @keyframes rvpnPulse {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.04); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.04);
+  }
+
+  100% {
+    transform: scale(1);
+  }
 }
 
 .rvpn-hero-status {
@@ -7021,7 +7113,7 @@ body.is-easy-mode .easy-dashboard {
 
 .cyber-recoil-deck {
   background: radial-gradient(circle at 50% 0%, rgba(56, 189, 248, 0.06), transparent 70%),
-              rgba(10, 15, 28, 0.88);
+    rgba(10, 15, 28, 0.88);
   border: 1px solid rgba(56, 189, 248, 0.22);
   border-radius: 20px;
   padding: 24px 26px;
@@ -7068,8 +7160,17 @@ body.is-easy-mode .easy-dashboard {
 }
 
 @keyframes cyberPulseGlow {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.4; transform: scale(0.8); }
+
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.4;
+    transform: scale(0.8);
+  }
 }
 
 .cyber-tag-text {
@@ -7706,12 +7807,12 @@ body.is-easy-mode .easy-dashboard {
   border-radius: 50%;
 }
 
-.cyber-switch input:checked + .cyber-switch-slider {
+.cyber-switch input:checked+.cyber-switch-slider {
   background-color: rgba(56, 189, 248, 0.14);
   border-color: #38bdf8;
 }
 
-.cyber-switch input:checked + .cyber-switch-slider:before {
+.cyber-switch input:checked+.cyber-switch-slider:before {
   transform: translateX(22px);
   background-color: #38bdf8;
   box-shadow: 0 0 10px #38bdf8;

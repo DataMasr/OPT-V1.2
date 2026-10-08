@@ -449,6 +449,10 @@
             <span class="tab-label" data-i18n="nav.fixer32">Block Updates</span>
             <span class="tag-pill tag-pill-sky" data-i18n="nav.block">BLOCK</span>
           </button>
+        </div>
+
+        <div class="menu-group menu-group-vpn" id="menu-group-vpn">
+          <div class="menu-group-label" data-i18n="nav.group.vpn">Tunnel &amp; VPN</div>
 
           <button class="menu-tab" data-tab="roblox-vpn">
             <span class="tab-icon">
@@ -686,9 +690,11 @@
                 <div class="easy-card-content">
                   <div class="easy-card-title-row">
                     <span class="easy-card-title" data-i18n="easy.btnNoRecoil">ثبات سلاح</span>
-                    <span class="easy-status-pill" id="easy-norecoil-status" data-i18n="easy.nrOffline">معطّل [F9]</span>
+                    <span class="easy-status-pill" id="easy-norecoil-status" data-i18n="easy.nrOffline">معطّل
+                      [F9]</span>
                   </div>
-                  <p class="easy-card-desc" data-i18n="easy.descNoRecoil">تثبيت ارتداد السلاح التلقائي بالذكاء الاصطناعي مع كشف السكوبات [F9]</p>
+                  <p class="easy-card-desc" data-i18n="easy.descNoRecoil">تثبيت ارتداد السلاح التلقائي بالذكاء الاصطناعي
+                    مع كشف السكوبات [F9]</p>
                 </div>
                 <div class="easy-card-arrow">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
@@ -2783,8 +2789,11 @@
                 <span class="cyber-tag-text">CYPER AI STABILIZER // VIP V2.0</span>
               </div>
               <div class="cyber-deck-meta">
-                <button class="cyber-badge-fps" id="btn-recoil-back-easy" type="button" style="cursor: pointer; display: none; background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.35); color: #38bdf8; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 99px; font-weight: 700;" onclick="switchTab('home')">
-                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <button class="cyber-badge-fps" id="btn-recoil-back-easy" type="button"
+                  style="cursor: pointer; display: none; background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.35); color: #38bdf8; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 99px; font-weight: 700;"
+                  onclick="switchTab('home')">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"
+                    stroke-linecap="round" stroke-linejoin="round">
                     <polyline points="15 18 9 12 15 6"></polyline>
                   </svg>
                   <span data-i18n="easy.backHome">&larr; Back to Dashboard</span>
@@ -2797,7 +2806,8 @@
             <div class="cyber-master-card" id="cyber-master-card">
               <div class="cyber-master-info">
                 <div class="cyber-master-icon">
-                  <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
                     <circle cx="12" cy="12" r="10"></circle>
                     <line x1="22" y1="12" x2="18" y2="12"></line>
                     <line x1="6" y1="12" x2="2" y2="12"></line>
@@ -2825,8 +2835,10 @@
                   <span class="matrix-desc" data-i18n="nr.matrix.modeDesc">TRIGGER LOGIC</span>
                 </div>
                 <div class="cyber-segmented-group" id="grp-recoil-mode">
-                  <button class="cyber-seg-btn selected" id="btn-mode-hold" type="button" data-i18n="nr.mode.hold">HOLD</button>
-                  <button class="cyber-seg-btn" id="btn-mode-toggle" type="button" data-i18n="nr.mode.toggle">TOGGLE</button>
+                  <button class="cyber-seg-btn selected" id="btn-mode-hold" type="button"
+                    data-i18n="nr.mode.hold">HOLD</button>
+                  <button class="cyber-seg-btn" id="btn-mode-toggle" type="button"
+                    data-i18n="nr.mode.toggle">TOGGLE</button>
                 </div>
               </div>
 
@@ -2853,7 +2865,8 @@
               <div class="cyber-slider-top">
                 <div class="slider-title-wrap">
                   <span class="cyber-label-accent" data-i18n="nr.pull.force">COMPENSATION PULL FORCE</span>
-                  <span class="cyber-sub-dim" data-i18n="nr.pull.desc">Vertical mouse compensation intensity per tick</span>
+                  <span class="cyber-sub-dim" data-i18n="nr.pull.desc">Vertical mouse compensation intensity per
+                    tick</span>
                 </div>
                 <div class="cyber-digital-readout">
                   <span class="readout-num" id="lbl-recoil-strength">4</span>
@@ -2896,7 +2909,9 @@
               <button class="cyber-glow-action-btn" id="btn-manage-weapons" type="button" onclick="openWeaponsModal()">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
                   <circle cx="12" cy="12" r="3"></circle>
-                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                  <path
+                    d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
+                  </path>
                 </svg>
                 <span data-i18n="nr.weapons.btn">CONFIGURE WEAPON OPTIC PROFILES</span>
               </button>
@@ -2921,7 +2936,8 @@
                 <!-- Dynamically populated -->
               </div>
 
-              <button class="cyber-glow-action-btn" id="btn-manage-scope-types" type="button" onclick="openWeaponsModal()">
+              <button class="cyber-glow-action-btn" id="btn-manage-scope-types" type="button"
+                onclick="openWeaponsModal()">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
                   <circle cx="12" cy="12" r="10"></circle>
                   <circle cx="12" cy="12" r="3"></circle>
@@ -2934,7 +2950,8 @@
             <div class="cyber-section-card">
               <div class="section-card-head">
                 <div class="head-title-wrap">
-                  <svg class="head-icon-cyan" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                  <svg class="head-icon-cyan" viewBox="0 0 24 24" width="18" height="18" fill="none"
+                    stroke="currentColor" stroke-width="2">
                     <rect x="2" y="3" width="20" height="14" rx="2"></rect>
                     <line x1="8" y1="21" x2="16" y2="21"></line>
                     <line x1="12" y1="17" x2="12" y2="21"></line>
@@ -2954,7 +2971,8 @@
                   <span id="btn-hud-lock-icon">🔒</span>
                   <span id="btn-hud-lock-text">HUD Position Locked</span>
                 </button>
-                <span class="hud-helper-note" data-i18n="nr.hud.note">Unlock to reposition the overlay anywhere over your GameLoop window.</span>
+                <span class="hud-helper-note" data-i18n="nr.hud.note">Unlock to reposition the overlay anywhere over
+                  your GameLoop window.</span>
               </div>
             </div>
 
@@ -3394,7 +3412,8 @@
           </label>
         </div>
 
-        <div class="settings-row" id="settings-row-pubg-shortcut" style="margin-top: 10px; border-top: 1px solid rgba(255, 255, 255, 0.06); padding-top: 14px;">
+        <div class="settings-row" id="settings-row-pubg-shortcut"
+          style="margin-top: 10px; border-top: 1px solid rgba(255, 255, 255, 0.06); padding-top: 14px;">
           <div class="settings-row-text">
             <div class="settings-row-title-row">
               <span class="settings-row-title" data-i18n="settings.pubgShortcutTitle">PUBG Easy Mode Shortcut</span>
@@ -3404,7 +3423,8 @@
               Create a desktop shortcut with the custom CyperOpt PUBG logo to launch directly into Easy Mode.
             </p>
           </div>
-          <button class="btn btn-secondary btn-sm" id="btn-create-pubg-shortcut-settings" type="button" style="white-space: nowrap; display: inline-flex; align-items: center; gap: 8px; border-color: rgba(245, 158, 11, 0.4); background: rgba(245, 158, 11, 0.1);">
+          <button class="btn btn-secondary btn-sm" id="btn-create-pubg-shortcut-settings" type="button"
+            style="white-space: nowrap; display: inline-flex; align-items: center; gap: 8px; border-color: rgba(245, 158, 11, 0.4); background: rgba(245, 158, 11, 0.1);">
             <img src="pubg-icon.png" style="width: 20px; height: 20px; border-radius: 4px; object-fit: contain;">
             <span data-i18n="settings.createShortcutBtn">Create Shortcut</span>
           </button>
@@ -3494,42 +3514,49 @@
   </div>
 
   <!-- Weapon Profiles Cyber Modal -->
-  <div id="weapons-modal" class="cyber-modal-backdrop" aria-hidden="true" role="dialog" aria-labelledby="weapons-modal-title"
+  <div id="weapons-modal" class="cyber-modal-backdrop" aria-hidden="true" role="dialog"
+    aria-labelledby="weapons-modal-title"
     style="display: none; position: fixed; inset: 0; z-index: 999999; align-items: center; justify-content: center; padding: 20px; background: rgba(2, 6, 14, 0.88); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);"
     onclick="if(event.target===this)closeWeaponsModal()">
-      <div class="cyber-modal-window" style="width: 100%; max-width: 660px; background: #090e1c; border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 18px; box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8), 0 0 35px rgba(56, 189, 248, 0.15); padding: 22px 24px; position: relative;">
-        <div class="cyber-modal-header">
-          <div class="modal-title-group">
-            <div class="modal-cyber-icon">
-              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="10"></circle>
-                <line x1="22" y1="12" x2="18" y2="12"></line>
-                <line x1="6" y1="12" x2="2" y2="12"></line>
-                <line x1="12" y1="6" x2="12" y2="2"></line>
-                <line x1="12" y1="22" x2="12" y2="18"></line>
-              </svg>
-            </div>
-            <div>
-              <h2 class="cyber-modal-h2" id="weapons-modal-title" data-i18n-html="nr.modal.title">WEAPON <span>OPTICS TUNER</span></h2>
-              <p class="cyber-modal-sub" data-i18n="nr.modal.sub">Configure custom pull offsets per optic for identified weapons</p>
-            </div>
+    <div class="cyber-modal-window"
+      style="width: 100%; max-width: 660px; background: #090e1c; border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 18px; box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8), 0 0 35px rgba(56, 189, 248, 0.15); padding: 22px 24px; position: relative;">
+      <div class="cyber-modal-header">
+        <div class="modal-title-group">
+          <div class="modal-cyber-icon">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="22" y1="12" x2="18" y2="12"></line>
+              <line x1="6" y1="12" x2="2" y2="12"></line>
+              <line x1="12" y1="6" x2="12" y2="2"></line>
+              <line x1="12" y1="22" x2="12" y2="18"></line>
+            </svg>
           </div>
-          <button type="button" class="cyber-modal-x" id="weapons-modal-close" aria-label="Close" onclick="closeWeaponsModal()">&times;</button>
+          <div>
+            <h2 class="cyber-modal-h2" id="weapons-modal-title" data-i18n-html="nr.modal.title">WEAPON <span>OPTICS
+                TUNER</span></h2>
+            <p class="cyber-modal-sub" data-i18n="nr.modal.sub">Configure custom pull offsets per optic for identified
+              weapons</p>
+          </div>
         </div>
+        <button type="button" class="cyber-modal-x" id="weapons-modal-close" aria-label="Close"
+          onclick="closeWeaponsModal()">&times;</button>
+      </div>
 
-        <div class="cyber-weapons-scroll-list" id="weapons-modal-list">
-          <!-- Dynamically populated -->
-        </div>
+      <div class="cyber-weapons-scroll-list" id="weapons-modal-list">
+        <!-- Dynamically populated -->
+      </div>
 
-        <div class="cyber-modal-footer">
-          <span class="footer-hint" data-i18n="nr.modal.hint">Changes automatically persist to configuration</span>
-          <button class="cyber-btn-modal-done" id="weapons-modal-done" type="button" onclick="closeWeaponsModal()" data-i18n="common.done">DONE</button>
-        </div>
+      <div class="cyber-modal-footer">
+        <span class="footer-hint" data-i18n="nr.modal.hint">Changes automatically persist to configuration</span>
+        <button class="cyber-btn-modal-done" id="weapons-modal-done" type="button" onclick="closeWeaponsModal()"
+          data-i18n="common.done">DONE</button>
       </div>
     </div>
+  </div>
 
-    <script src="i18n.js"></script>
-    <script src="app.js"></script>
+  <script src="i18n.js"></script>
+  <script src="app.js"></script>
 </body>
 
 </html>

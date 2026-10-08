@@ -259,6 +259,9 @@ const I18N = {
     'license.expiresOn': 'Expires on {date}',
     'license.level1': 'Level 1',
     'license.level2': 'Level 2 (ModSkin Included)',
+    'license.level3': 'Level 3 (Roblox VPN)',
+    'auth.err.level3OnlyVpn': 'This license is dedicated to Roblox VPN only.',
+    'nav.group.vpn': 'Tunnel & VPN',
 
     'side.running': 'Running',
     'side.notRunning': 'Not Running',
@@ -572,6 +575,9 @@ const I18N = {
     'license.expiresOn': 'ينتهي في {date}',
     'license.level1': 'لفل 1',
     'license.level2': 'لفل 2 (شامل ModSkin)',
+    'license.level3': 'لفل 3 (Roblox VPN)',
+    'auth.err.level3OnlyVpn': 'هذا الترخيص مخصص لـ Roblox VPN فقط.',
+    'nav.group.vpn': 'الشبكة ونفق الألعاب',
 
     // Sidebar + header
     'nav.section': 'القائمة الرئيسية',

@@ -108,6 +108,10 @@ function renderTabHeader() {
 
 // Switch Tab
 function switchTab(tabId, silent) {
+  if (isLevel3License() && tabId !== 'roblox-vpn') {
+    showToast(t('auth.err.level3OnlyVpn'), 'error');
+    return;
+  }
   if (tabId === 'modskin' && !isLevel2License()) {
     showToast(t('auth.err.level1Modskin'), 'error');
     return;
@@ -513,6 +517,12 @@ function startApp() {
   if (Auth.started) return;
   Auth.started = true;
 
+  if (isLevel3License()) {
+    switchTab('roblox-vpn', true);
+    sendAction('get_roblox_vpn_status');
+    return;
+  }
+
   sendAction('get_pc_check');
   sendAction('get_system_info');
   sendAction('get_gameloop_config');
@@ -541,15 +551,64 @@ function licenseRemainingText(lic) {
   return t('license.daysMany', { n: days });
 }
 
-function isLevel2License() {
+function isLevel3License() {
   const sub = (Auth.license && Auth.license.subscription ? String(Auth.license.subscription) : '').trim().toLowerCase();
-  return sub === '2' || sub.includes('2') || sub.includes('modskin') || sub.includes('vip');
+  return sub === '3' || sub === 'level 3' || sub.includes('3') || sub.includes('vpn');
+}
+
+function isLevel2License() {
+  if (isLevel3License()) return false;
+  const sub = (Auth.license && Auth.license.subscription ? String(Auth.license.subscription) : '').trim().toLowerCase();
+  return sub === '2' || sub === 'level 2' || sub.includes('2') || sub.includes('modskin') || sub.includes('vip');
 }
 
 function applyLicenseLevelPermissions() {
-  const isL2 = isLevel2License();
+  const isL3 = isLevel3License();
+  const isL2 = !isL3 && isLevel2License();
+  const isL1 = !isL3 && !isL2;
+
+  document.body.classList.toggle('license-level-3', isL3);
   document.body.classList.toggle('license-level-2', isL2);
-  document.body.classList.toggle('license-level-1', !isL2);
+  document.body.classList.toggle('license-level-1', isL1);
+
+  if (isL3) {
+    // Level 3 is strictly Roblox VPN only: isolate completely
+    document.querySelectorAll('.menu-tab').forEach(btn => {
+      const isVpn = btn.dataset.tab === 'roblox-vpn';
+      btn.style.display = isVpn ? '' : 'none';
+      btn.hidden = !isVpn;
+    });
+
+    document.querySelectorAll('.menu-group').forEach(group => {
+      const hasVpn = group.querySelector('.menu-tab[data-tab="roblox-vpn"]');
+      group.style.display = hasVpn ? '' : 'none';
+      group.hidden = !hasVpn;
+    });
+
+    if (currentTab !== 'roblox-vpn') {
+      switchTab('roblox-vpn', true);
+    }
+
+    const tierBadge = document.getElementById('license-tier-badge');
+    if (tierBadge) {
+      tierBadge.textContent = 'Level 3';
+      tierBadge.className = 'license-badge license-badge-l3';
+      tierBadge.title = t('license.level3');
+    }
+    return;
+  }
+
+  // Restore menu groups and tabs for Level 1 & Level 2
+  document.querySelectorAll('.menu-group').forEach(group => {
+    group.style.display = '';
+    group.hidden = false;
+  });
+
+  const vpnTabBtn = document.querySelector('.menu-tab[data-tab="roblox-vpn"]');
+  if (vpnTabBtn) {
+    vpnTabBtn.style.display = '';
+    vpnTabBtn.hidden = false;
+  }
 
   const modskinTabBtn = document.querySelector('.menu-tab[data-tab="modskin"]');
   if (modskinTabBtn) {
@@ -583,6 +642,17 @@ function applyLicenseLevelPermissions() {
       memoryTabBtn.hidden = false;
     }
   }
+
+  // Restore any other tabs that might have been hidden in Level 3
+  document.querySelectorAll('.menu-tab').forEach(btn => {
+    const tabName = btn.dataset.tab;
+    if (tabName !== 'modskin' && tabName !== 'norecoil' && tabName !== 'memory') {
+      if (!EasyModeState.enabled || EasyModeState.allowedTabs.includes(tabName)) {
+        btn.style.display = '';
+        btn.hidden = false;
+      }
+    }
+  });
 
   const modskinTile = document.querySelector('.tool-tile[data-tab="modskin"]');
   if (modskinTile) {
@@ -662,8 +732,15 @@ function renderLicense() {
   if (lic) {
     const parts = [];
     if (lic.key) parts.push(lic.key);
-    const isL2 = isLevel2License();
-    parts.push(isL2 ? t('license.level2') : t('license.level1'));
+    const isL3 = isLevel3License();
+    const isL2 = !isL3 && isLevel2License();
+    if (isL3) {
+      parts.push(t('license.level3'));
+    } else if (isL2) {
+      parts.push(t('license.level2'));
+    } else {
+      parts.push(t('license.level1'));
+    }
     if (lic.expiry && lic.expiry * 1000 - Date.now() < 3650 * 86400000) {
       const date = new Date(lic.expiry * 1000).toLocaleDateString(Lang.locale(), { year: 'numeric', month: 'long', day: 'numeric' });
       parts.push(t('license.expiresOn', { date }));
@@ -1144,8 +1221,11 @@ function sendAction(action, data = {}) {
     } else if (action === 'auth_login') {
       handleNativeMessage({ action: 'auth_state', state: 'checking', automatic: false });
       setTimeout(() => {
+        let sub = 'default';
+        if (/level3|vpn|l3/i.test(payload.key)) sub = '3';
+        else if (/level2|vip|l2/i.test(payload.key)) sub = '2';
         handleNativeMessage(/^demo/i.test(payload.key)
-          ? { action: 'auth_result', ok: true, key: 'DEMO••••••' + payload.key.slice(-4), subscription: 'default', expiry: Math.floor(Date.now() / 1000) + 30 * 86400 }
+          ? { action: 'auth_result', ok: true, key: 'DEMO••••••' + payload.key.slice(-4), subscription: sub, expiry: Math.floor(Date.now() / 1000) + 30 * 86400 }
           : { action: 'auth_result', ok: false, code: 'rejected', message: 'Invalid license key', automatic: false });
       }, 900);
     } else if (action === 'auth_logout') {
@@ -2201,13 +2281,13 @@ function handleModSkinStatus(msg) {
 // No Recoil Stabilizer Controller (NXVIP Style + YOLOv8)
 // ----------------------------------------------------------
 const DEFAULT_WEAPON_TEMPLATES = [
-  { name: 'AKM', strength: 14, scopes: [ { name: 'red', strength: 14, enabled: true }, { name: 'holo', strength: 14, enabled: true }, { name: '2x', strength: 16, enabled: true }, { name: '3x', strength: 20, enabled: true }, { name: '4x', strength: 22, enabled: true }, { name: '6x', strength: 25, enabled: true } ] },
-  { name: 'AUG', strength: 12, scopes: [ { name: 'red', strength: 12, enabled: true }, { name: 'holo', strength: 12, enabled: true }, { name: '2x', strength: 14, enabled: true }, { name: '3x', strength: 17, enabled: true }, { name: '4x', strength: 19, enabled: true }, { name: '6x', strength: 22, enabled: true } ] },
-  { name: 'Groza', strength: 14, scopes: [ { name: 'red', strength: 14, enabled: true }, { name: 'holo', strength: 14, enabled: true }, { name: '2x', strength: 16, enabled: true }, { name: '3x', strength: 20, enabled: true }, { name: '4x', strength: 22, enabled: true }, { name: '6x', strength: 25, enabled: true } ] },
-  { name: 'M416', strength: 12, scopes: [ { name: 'red', strength: 12, enabled: true }, { name: 'holo', strength: 12, enabled: true }, { name: '2x', strength: 14, enabled: true }, { name: '3x', strength: 17, enabled: true }, { name: '4x', strength: 19, enabled: true }, { name: '6x', strength: 22, enabled: true } ] },
-  { name: 'm762', strength: 15, scopes: [ { name: 'red', strength: 15, enabled: true }, { name: 'holo', strength: 15, enabled: true }, { name: '2x', strength: 17, enabled: true }, { name: '3x', strength: 21, enabled: true }, { name: '4x', strength: 23, enabled: true }, { name: '6x', strength: 26, enabled: true } ] },
-  { name: 'MG3', strength: 13, scopes: [ { name: 'red', strength: 13, enabled: true }, { name: 'holo', strength: 13, enabled: true }, { name: '2x', strength: 15, enabled: true }, { name: '3x', strength: 18, enabled: true }, { name: '4x', strength: 20, enabled: true }, { name: '6x', strength: 24, enabled: true } ] },
-  { name: 'SCAR-L', strength: 12, scopes: [ { name: 'red', strength: 12, enabled: true }, { name: 'holo', strength: 12, enabled: true }, { name: '2x', strength: 14, enabled: true }, { name: '3x', strength: 17, enabled: true }, { name: '4x', strength: 19, enabled: true }, { name: '6x', strength: 22, enabled: true } ] }
+  { name: 'AKM', strength: 14, scopes: [{ name: 'red', strength: 14, enabled: true }, { name: 'holo', strength: 14, enabled: true }, { name: '2x', strength: 16, enabled: true }, { name: '3x', strength: 20, enabled: true }, { name: '4x', strength: 22, enabled: true }, { name: '6x', strength: 25, enabled: true }] },
+  { name: 'AUG', strength: 12, scopes: [{ name: 'red', strength: 12, enabled: true }, { name: 'holo', strength: 12, enabled: true }, { name: '2x', strength: 14, enabled: true }, { name: '3x', strength: 17, enabled: true }, { name: '4x', strength: 19, enabled: true }, { name: '6x', strength: 22, enabled: true }] },
+  { name: 'Groza', strength: 14, scopes: [{ name: 'red', strength: 14, enabled: true }, { name: 'holo', strength: 14, enabled: true }, { name: '2x', strength: 16, enabled: true }, { name: '3x', strength: 20, enabled: true }, { name: '4x', strength: 22, enabled: true }, { name: '6x', strength: 25, enabled: true }] },
+  { name: 'M416', strength: 12, scopes: [{ name: 'red', strength: 12, enabled: true }, { name: 'holo', strength: 12, enabled: true }, { name: '2x', strength: 14, enabled: true }, { name: '3x', strength: 17, enabled: true }, { name: '4x', strength: 19, enabled: true }, { name: '6x', strength: 22, enabled: true }] },
+  { name: 'm762', strength: 15, scopes: [{ name: 'red', strength: 15, enabled: true }, { name: 'holo', strength: 15, enabled: true }, { name: '2x', strength: 17, enabled: true }, { name: '3x', strength: 21, enabled: true }, { name: '4x', strength: 23, enabled: true }, { name: '6x', strength: 26, enabled: true }] },
+  { name: 'MG3', strength: 13, scopes: [{ name: 'red', strength: 13, enabled: true }, { name: 'holo', strength: 13, enabled: true }, { name: '2x', strength: 15, enabled: true }, { name: '3x', strength: 18, enabled: true }, { name: '4x', strength: 20, enabled: true }, { name: '6x', strength: 24, enabled: true }] },
+  { name: 'SCAR-L', strength: 12, scopes: [{ name: 'red', strength: 12, enabled: true }, { name: 'holo', strength: 12, enabled: true }, { name: '2x', strength: 14, enabled: true }, { name: '3x', strength: 17, enabled: true }, { name: '4x', strength: 19, enabled: true }, { name: '6x', strength: 22, enabled: true }] }
 ];
 
 const RecoilState = {
@@ -2560,7 +2640,7 @@ function renderWeaponsModalList() {
     statusBadge.textContent = hasCustom
       ? (isAr ? `${customCount} مخصص` : `${customCount} CUSTOM`)
       : (isAr ? 'عام' : 'GLOBAL');
-    statusBadge.style.cssText = hasCustom 
+    statusBadge.style.cssText = hasCustom
       ? 'background:rgba(0,240,255,0.15); color:#00f0ff; border:1px solid rgba(0,240,255,0.3); border-radius:4px; padding:2px 8px; font-size:0.65rem; font-weight:700;'
       : 'background:rgba(255,255,255,0.06); color:#94a3b8; border:1px solid rgba(255,255,255,0.1); border-radius:4px; padding:2px 8px; font-size:0.65rem; font-weight:600;';
 
@@ -2660,7 +2740,7 @@ function renderWeaponsModalList() {
           statusBadge.textContent = currentCustom > 0
             ? (isAr ? `${currentCustom} مخصص` : `${currentCustom} CUSTOM`)
             : (isAr ? 'عام' : 'GLOBAL');
-          statusBadge.style.cssText = currentCustom > 0 
+          statusBadge.style.cssText = currentCustom > 0
             ? 'background:rgba(0,240,255,0.15); color:#00f0ff; border:1px solid rgba(0,240,255,0.3); border-radius:4px; padding:2px 8px; font-size:0.65rem; font-weight:700;'
             : 'background:rgba(255,255,255,0.06); color:#94a3b8; border:1px solid rgba(255,255,255,0.1); border-radius:4px; padding:2px 8px; font-size:0.65rem; font-weight:600;';
         }
