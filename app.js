@@ -124,6 +124,9 @@ function switchTab(tabId, silent) {
     showToast(t('auth.err.level2Memory'), 'error');
     return;
   }
+  if (typeof FeatureVisibility !== 'undefined' && FeatureVisibility.isTabHidden(tabId)) {
+    return;
+  }
   if (!silent) SoundEngine.playClick();
   currentTab = tabId;
 
@@ -562,6 +565,269 @@ function isLevel2License() {
   return sub === '2' || sub === 'level 2' || sub.includes('2') || sub.includes('modskin') || sub.includes('vip');
 }
 
+// ==========================================================
+// Feature & Tool Visibility Controller (Customization)
+// ==========================================================
+const FeatureVisibility = {
+  STORAGE_KEY: 'cyperopt_hidden_features',
+  hiddenList: [],
+
+  definitions: [
+    {
+      id: 'modskin',
+      nameKey: 'settings.feat.modskin',
+      descKey: 'settings.feat.modskinDesc',
+      iconSvg: '<path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z"></path><line x1="16" y1="8" x2="2" y2="22"></line><line x1="17.5" y1="15" x2="9" y2="15"></line>',
+      levelReq: 2,
+      tabs: ['modskin'],
+      tiles: ['modskin'],
+      easys: ['btn-easy-modskin']
+    },
+    {
+      id: 'norecoil',
+      nameKey: 'settings.feat.norecoil',
+      descKey: 'settings.feat.norecoilDesc',
+      iconSvg: '<circle cx="12" cy="12" r="10"></circle><line x1="22" y1="12" x2="18" y2="12"></line><line x1="6" y1="12" x2="2" y2="12"></line><line x1="12" y1="6" x2="12" y2="2"></line><line x1="12" y1="22" x2="12" y2="18"></line><circle cx="12" cy="12" r="2" fill="currentColor"></circle>',
+      levelReq: 2,
+      tabs: ['norecoil'],
+      tiles: ['norecoil'],
+      easys: ['btn-easy-norecoil']
+    },
+    {
+      id: 'memory',
+      nameKey: 'settings.feat.memory',
+      descKey: 'settings.feat.memoryDesc',
+      iconSvg: '<rect x="4" y="4" width="16" height="16" rx="2"></rect><rect x="9" y="9" width="6" height="6"></rect><line x1="9" y1="1" x2="9" y2="4"></line><line x1="15" y1="1" x2="15" y2="4"></line><line x1="9" y1="20" x2="9" y2="23"></line><line x1="15" y1="20" x2="15" y2="23"></line><line x1="20" y1="9" x2="23" y2="9"></line><line x1="20" y1="14" x2="23" y2="14"></line><line x1="1" y1="9" x2="4" y2="9"></line><line x1="1" y1="14" x2="4" y2="14"></line>',
+      levelReq: 1,
+      tabs: ['memory'],
+      tiles: ['memory'],
+      easys: ['btn-easy-memory']
+    },
+    {
+      id: 'roblox-vpn',
+      nameKey: 'settings.feat.vpn',
+      descKey: 'settings.feat.vpnDesc',
+      iconSvg: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><polyline points="9 12 11 14 15 10"></polyline>',
+      levelReq: 'all',
+      tabs: ['roblox-vpn'],
+      tiles: [],
+      easys: ['btn-easy-roblox-vpn']
+    },
+    {
+      id: 'tweaks',
+      nameKey: 'settings.feat.tweaks',
+      descKey: 'settings.feat.tweaksDesc',
+      iconSvg: '<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>',
+      levelReq: 'all',
+      tabs: ['tweaks'],
+      tiles: ['tweaks'],
+      easys: []
+    },
+    {
+      id: 'gfx',
+      nameKey: 'settings.feat.gfx',
+      descKey: 'settings.feat.gfxDesc',
+      iconSvg: '<rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line>',
+      levelReq: 'all',
+      tabs: ['gfx'],
+      tiles: ['gfx'],
+      easys: []
+    },
+    {
+      id: 'gameloop',
+      nameKey: 'settings.feat.gameloop',
+      descKey: 'settings.feat.gameloopDesc',
+      iconSvg: '<rect x="2" y="6" width="20" height="12" rx="2"></rect><circle cx="6" cy="12" r="1.5"></circle><circle cx="18" cy="12" r="1.5"></circle><path d="M10 10h4"></path><path d="M12 8v4"></path>',
+      levelReq: 'all',
+      tabs: ['gameloop'],
+      tiles: ['gameloop'],
+      easys: []
+    },
+    {
+      id: 'resolution',
+      nameKey: 'settings.feat.resolution',
+      descKey: 'settings.feat.resolutionDesc',
+      iconSvg: '<path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>',
+      levelReq: 'all',
+      tabs: ['resolution'],
+      tiles: ['resolution'],
+      easys: []
+    },
+    {
+      id: 'display-res',
+      nameKey: 'settings.feat.displayRes',
+      descKey: 'settings.feat.displayResDesc',
+      iconSvg: '<rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line>',
+      levelReq: 'all',
+      tabs: ['display-res'],
+      tiles: [],
+      easys: ['btn-easy-ipad-view']
+    },
+    {
+      id: 'scopes',
+      nameKey: 'settings.feat.scopes',
+      descKey: 'settings.feat.scopesDesc',
+      iconSvg: '<circle cx="12" cy="12" r="10"></circle><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon>',
+      levelReq: 'all',
+      tabs: ['scopes'],
+      tiles: ['scopes'],
+      easys: []
+    },
+    {
+      id: 'paks',
+      nameKey: 'settings.feat.paks',
+      descKey: 'settings.feat.paksDesc',
+      iconSvg: '<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line>',
+      levelReq: 'all',
+      tabs: ['paks'],
+      tiles: ['paks'],
+      easys: []
+    },
+    {
+      id: 'fixes',
+      nameKey: 'settings.feat.fixes',
+      descKey: 'settings.feat.fixesDesc',
+      iconSvg: '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>',
+      levelReq: 'all',
+      tabs: ['facebook', 'twitter', 'fixer32'],
+      tiles: ['twitter'],
+      easys: ['btn-easy-fix-facebook', 'btn-easy-fix-twitter']
+    }
+  ],
+
+  load() {
+    try {
+      const stored = localStorage.getItem(this.STORAGE_KEY);
+      this.hiddenList = stored ? JSON.parse(stored) : [];
+      if (!Array.isArray(this.hiddenList)) this.hiddenList = [];
+    } catch (e) {
+      this.hiddenList = [];
+    }
+  },
+
+  save() {
+    try {
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.hiddenList));
+    } catch (e) { }
+  },
+
+  isHidden(featureId) {
+    return this.hiddenList.includes(featureId);
+  },
+
+  isTabHidden(tabId) {
+    if (tabId === 'home') return false;
+    for (const feat of this.definitions) {
+      if (feat.tabs.includes(tabId)) {
+        return this.isHidden(feat.id);
+      }
+    }
+    return false;
+  },
+
+  toggle(featureId, makeVisible) {
+    const isCurrentlyHidden = this.isHidden(featureId);
+    const targetHidden = (makeVisible !== undefined) ? !makeVisible : !isCurrentlyHidden;
+
+    if (targetHidden) {
+      if (!this.hiddenList.includes(featureId)) {
+        this.hiddenList.push(featureId);
+      }
+    } else {
+      this.hiddenList = this.hiddenList.filter(id => id !== featureId);
+    }
+
+    this.save();
+    applyLicenseLevelPermissions();
+    this.renderSettings();
+
+    const feat = this.definitions.find(f => f.id === featureId);
+    const name = feat ? t(feat.nameKey) : featureId;
+    if (targetHidden) {
+      showToast(t('settings.feat.hiddenToast', { name }), 'info');
+    } else {
+      showToast(t('settings.feat.shownToast', { name }), 'success');
+    }
+  },
+
+  getFeatureLockReason(feat) {
+    const isL3 = isLevel3License();
+    const isL2 = !isL3 && isLevel2License();
+
+    if (isL3) {
+      if (feat.id === 'roblox-vpn') return 'locked_l3_vpn';
+      return 'locked_l3';
+    }
+    if (feat.levelReq === 2 && !isL2) {
+      return 'locked_l2';
+    }
+    if (feat.levelReq === 1 && isL2) {
+      return 'locked_l1';
+    }
+    return null;
+  },
+
+  renderSettings() {
+    const container = document.getElementById('settings-features-list');
+    if (!container) return;
+
+    container.innerHTML = '';
+
+    this.definitions.forEach(feat => {
+      const isHidden = this.isHidden(feat.id);
+      const isVisible = !isHidden;
+      const lockReason = this.getFeatureLockReason(feat);
+      const isDisabled = lockReason !== null;
+
+      const row = document.createElement('div');
+      row.className = `settings-feature-row ${isDisabled ? 'is-disabled' : ''}`;
+      row.id = `settings-feat-row-${feat.id}`;
+
+      let badgeHtml = '';
+      if (lockReason === 'locked_l2') {
+        badgeHtml = `<span class="settings-feature-badge">${t('settings.feat.lockedL2')}</span>`;
+      } else if (lockReason === 'locked_l1') {
+        badgeHtml = `<span class="settings-feature-badge">${t('settings.feat.lockedL1')}</span>`;
+      } else if (lockReason === 'locked_l3' || lockReason === 'locked_l3_vpn') {
+        badgeHtml = `<span class="settings-feature-badge">${t('license.level3')}</span>`;
+      }
+
+      row.innerHTML = `
+        <div class="settings-feature-info">
+          <div class="settings-feature-icon">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              ${feat.iconSvg}
+            </svg>
+          </div>
+          <div class="settings-feature-text">
+            <div class="settings-feature-name-row">
+              <span class="settings-feature-name">${t(feat.nameKey)}</span>
+              ${badgeHtml}
+            </div>
+            <div class="settings-feature-desc">${t(feat.descKey)}</div>
+          </div>
+        </div>
+        <div class="settings-feature-action">
+          <label class="modern-switch" style="${isDisabled ? 'cursor: not-allowed;' : 'cursor: pointer;'}">
+            <input type="checkbox" id="chk-feat-${feat.id}" ${isVisible && !isDisabled ? 'checked' : ''} ${isDisabled ? 'disabled' : ''}>
+            <span class="switch-slider"></span>
+          </label>
+        </div>
+      `;
+
+      if (!isDisabled) {
+        const chk = row.querySelector(`#chk-feat-${feat.id}`);
+        chk.addEventListener('change', (e) => {
+          this.toggle(feat.id, e.target.checked);
+        });
+      }
+
+      container.appendChild(row);
+    });
+  }
+};
+FeatureVisibility.load();
+
 function applyLicenseLevelPermissions() {
   const isL3 = isLevel3License();
   const isL2 = !isL3 && isLevel2License();
@@ -598,96 +864,218 @@ function applyLicenseLevelPermissions() {
     return;
   }
 
-  // Restore menu groups and tabs for Level 1 & Level 2
-  document.querySelectorAll('.menu-group').forEach(group => {
-    group.style.display = '';
-    group.hidden = false;
-  });
-
+  // Restore menu groups and tabs for Level 1 & Level 2 with FeatureVisibility checks
+  const isVpnHidden = FeatureVisibility.isHidden('roblox-vpn');
   const vpnTabBtn = document.querySelector('.menu-tab[data-tab="roblox-vpn"]');
   if (vpnTabBtn) {
-    vpnTabBtn.style.display = '';
-    vpnTabBtn.hidden = false;
+    const hideVpn = isVpnHidden || (EasyModeState.enabled && !EasyModeState.allowedTabs.includes('roblox-vpn'));
+    vpnTabBtn.style.display = hideVpn ? 'none' : '';
+    vpnTabBtn.hidden = hideVpn;
+  }
+  const vpnGroup = document.getElementById('menu-group-vpn');
+  if (vpnGroup) {
+    vpnGroup.style.display = isVpnHidden ? 'none' : '';
+    vpnGroup.hidden = isVpnHidden;
+  }
+  const easyVpnBtn = document.getElementById('btn-easy-roblox-vpn');
+  if (easyVpnBtn) {
+    easyVpnBtn.style.display = isVpnHidden ? 'none' : '';
+    easyVpnBtn.hidden = isVpnHidden;
   }
 
+  const isModskinHidden = !isL2 || FeatureVisibility.isHidden('modskin');
   const modskinTabBtn = document.querySelector('.menu-tab[data-tab="modskin"]');
   if (modskinTabBtn) {
-    if (!isL2) {
-      modskinTabBtn.style.display = 'none';
-      modskinTabBtn.hidden = true;
-    } else if (!EasyModeState.enabled) {
-      modskinTabBtn.style.display = '';
-      modskinTabBtn.hidden = false;
-    }
+    const hideModskin = isModskinHidden || EasyModeState.enabled;
+    modskinTabBtn.style.display = hideModskin ? 'none' : '';
+    modskinTabBtn.hidden = hideModskin;
+  }
+  const modskinTile = document.querySelector('.tool-tile[data-tab="modskin"]');
+  if (modskinTile) {
+    modskinTile.style.display = isModskinHidden ? 'none' : '';
+    modskinTile.hidden = isModskinHidden;
+  }
+  const easyModskinBtn = document.getElementById('btn-easy-modskin');
+  if (easyModskinBtn) {
+    easyModskinBtn.style.display = isModskinHidden ? 'none' : '';
+    easyModskinBtn.hidden = isModskinHidden;
   }
 
+  const isNorecoilHidden = !isL2 || FeatureVisibility.isHidden('norecoil');
   const norecoilTabBtn = document.querySelector('.menu-tab[data-tab="norecoil"]');
   if (norecoilTabBtn) {
-    if (!isL2) {
-      norecoilTabBtn.style.display = 'none';
-      norecoilTabBtn.hidden = true;
-    } else {
-      norecoilTabBtn.style.display = '';
-      norecoilTabBtn.hidden = false;
-    }
+    norecoilTabBtn.style.display = isNorecoilHidden ? 'none' : '';
+    norecoilTabBtn.hidden = isNorecoilHidden;
+  }
+  const norecoilTile = document.querySelector('.tool-tile[data-tab="norecoil"]');
+  if (norecoilTile) {
+    norecoilTile.style.display = isNorecoilHidden ? 'none' : '';
+    norecoilTile.hidden = isNorecoilHidden;
+  }
+  const easyNoRecoilBtn = document.getElementById('btn-easy-norecoil');
+  if (easyNoRecoilBtn) {
+    easyNoRecoilBtn.style.display = isNorecoilHidden ? 'none' : '';
+    easyNoRecoilBtn.hidden = isNorecoilHidden;
   }
 
+  const isMemoryHidden = isL2 || FeatureVisibility.isHidden('memory');
   const memoryTabBtn = document.querySelector('.menu-tab[data-tab="memory"]');
   if (memoryTabBtn) {
-    if (isL2) {
-      memoryTabBtn.style.display = 'none';
-      memoryTabBtn.hidden = true;
-    } else if (!EasyModeState.enabled) {
-      memoryTabBtn.style.display = '';
-      memoryTabBtn.hidden = false;
-    }
+    const hideMemory = isMemoryHidden || EasyModeState.enabled;
+    memoryTabBtn.style.display = hideMemory ? 'none' : '';
+    memoryTabBtn.hidden = hideMemory;
+  }
+  const memoryTile = document.querySelector('.tool-tile[data-tab="memory"]');
+  if (memoryTile) {
+    memoryTile.style.display = isMemoryHidden ? 'none' : '';
+    memoryTile.hidden = isMemoryHidden;
+  }
+  const easyMemoryBtn = document.getElementById('btn-easy-memory');
+  if (easyMemoryBtn) {
+    easyMemoryBtn.style.display = isMemoryHidden ? 'none' : '';
+    easyMemoryBtn.hidden = isMemoryHidden;
   }
 
-  // Restore any other tabs that might have been hidden in Level 3
-  document.querySelectorAll('.menu-tab').forEach(btn => {
-    const tabName = btn.dataset.tab;
-    if (tabName !== 'modskin' && tabName !== 'norecoil' && tabName !== 'memory') {
-      if (!EasyModeState.enabled || EasyModeState.allowedTabs.includes(tabName)) {
-        btn.style.display = '';
-        btn.hidden = false;
-      }
+  // System optimizer (tweaks)
+  const isTweaksHidden = FeatureVisibility.isHidden('tweaks');
+  const tweaksTabBtn = document.querySelector('.menu-tab[data-tab="tweaks"]');
+  if (tweaksTabBtn) {
+    const hideTweaks = isTweaksHidden || (EasyModeState.enabled && !EasyModeState.allowedTabs.includes('tweaks'));
+    tweaksTabBtn.style.display = hideTweaks ? 'none' : '';
+    tweaksTabBtn.hidden = hideTweaks;
+  }
+  const tweaksTile = document.querySelector('.tool-tile[data-tab="tweaks"]');
+  if (tweaksTile) {
+    tweaksTile.style.display = isTweaksHidden ? 'none' : '';
+    tweaksTile.hidden = isTweaksHidden;
+  }
+
+  // GFX Tool
+  const isGfxHidden = FeatureVisibility.isHidden('gfx');
+  const gfxTabBtn = document.querySelector('.menu-tab[data-tab="gfx"]');
+  if (gfxTabBtn) {
+    const hideGfx = isGfxHidden || (EasyModeState.enabled && !EasyModeState.allowedTabs.includes('gfx'));
+    gfxTabBtn.style.display = hideGfx ? 'none' : '';
+    gfxTabBtn.hidden = hideGfx;
+  }
+  const gfxTile = document.querySelector('.tool-tile[data-tab="gfx"]');
+  if (gfxTile) {
+    gfxTile.style.display = isGfxHidden ? 'none' : '';
+    gfxTile.hidden = isGfxHidden;
+  }
+
+  // GameLoop Optimizer
+  const isGameloopHidden = FeatureVisibility.isHidden('gameloop');
+  const gameloopTabBtn = document.querySelector('.menu-tab[data-tab="gameloop"]');
+  if (gameloopTabBtn) {
+    const hideGameloop = isGameloopHidden || (EasyModeState.enabled && !EasyModeState.allowedTabs.includes('gameloop'));
+    gameloopTabBtn.style.display = hideGameloop ? 'none' : '';
+    gameloopTabBtn.hidden = hideGameloop;
+  }
+  const gameloopTile = document.querySelector('.tool-tile[data-tab="gameloop"]');
+  if (gameloopTile) {
+    gameloopTile.style.display = isGameloopHidden ? 'none' : '';
+    gameloopTile.hidden = isGameloopHidden;
+  }
+
+  // GameLoop Resolution
+  const isResHidden = FeatureVisibility.isHidden('resolution');
+  const resTabBtn = document.querySelector('.menu-tab[data-tab="resolution"]');
+  if (resTabBtn) {
+    const hideRes = isResHidden || (EasyModeState.enabled && !EasyModeState.allowedTabs.includes('resolution'));
+    resTabBtn.style.display = hideRes ? 'none' : '';
+    resTabBtn.hidden = hideRes;
+  }
+  const resTile = document.querySelector('.tool-tile[data-tab="resolution"]');
+  if (resTile) {
+    resTile.style.display = isResHidden ? 'none' : '';
+    resTile.hidden = isResHidden;
+  }
+
+  // Display Resolution (iPad View)
+  const isDisplayResHidden = FeatureVisibility.isHidden('display-res');
+  const displayResTabBtn = document.querySelector('.menu-tab[data-tab="display-res"]');
+  if (displayResTabBtn) {
+    const hideDisplayRes = isDisplayResHidden || (EasyModeState.enabled && !EasyModeState.allowedTabs.includes('display-res'));
+    displayResTabBtn.style.display = hideDisplayRes ? 'none' : '';
+    displayResTabBtn.hidden = hideDisplayRes;
+  }
+  const easyIpadBtn = document.getElementById('btn-easy-ipad-view');
+  if (easyIpadBtn) {
+    easyIpadBtn.style.display = isDisplayResHidden ? 'none' : '';
+    easyIpadBtn.hidden = isDisplayResHidden;
+  }
+
+  // Scopes (Sensitivity Profiles)
+  const isScopesHidden = FeatureVisibility.isHidden('scopes');
+  const scopesTabBtn = document.querySelector('.menu-tab[data-tab="scopes"]');
+  if (scopesTabBtn) {
+    const hideScopes = isScopesHidden || (EasyModeState.enabled && !EasyModeState.allowedTabs.includes('scopes'));
+    scopesTabBtn.style.display = hideScopes ? 'none' : '';
+    scopesTabBtn.hidden = hideScopes;
+  }
+  const scopesTile = document.querySelector('.tool-tile[data-tab="scopes"]');
+  if (scopesTile) {
+    scopesTile.style.display = isScopesHidden ? 'none' : '';
+    scopesTile.hidden = isScopesHidden;
+  }
+
+  // Paks Tool
+  const isPaksHidden = FeatureVisibility.isHidden('paks');
+  const paksTabBtn = document.querySelector('.menu-tab[data-tab="paks"]');
+  if (paksTabBtn) {
+    const hidePaks = isPaksHidden || (EasyModeState.enabled && !EasyModeState.allowedTabs.includes('paks'));
+    paksTabBtn.style.display = hidePaks ? 'none' : '';
+    paksTabBtn.hidden = hidePaks;
+  }
+  const paksTile = document.querySelector('.tool-tile[data-tab="paks"]');
+  if (paksTile) {
+    paksTile.style.display = isPaksHidden ? 'none' : '';
+    paksTile.hidden = isPaksHidden;
+  }
+
+  // Fixes & Network (facebook, twitter, fixer32)
+  const isFixesHidden = FeatureVisibility.isHidden('fixes');
+  ['facebook', 'twitter', 'fixer32'].forEach(tname => {
+    const btn = document.querySelector(`.menu-tab[data-tab="${tname}"]`);
+    if (btn) {
+      const hideTab = isFixesHidden || (EasyModeState.enabled && !EasyModeState.allowedTabs.includes(tname));
+      btn.style.display = hideTab ? 'none' : '';
+      btn.hidden = hideTab;
+    }
+  });
+  const twitterTile = document.querySelector('.tool-tile[data-tab="twitter"]');
+  if (twitterTile) {
+    twitterTile.style.display = isFixesHidden ? 'none' : '';
+    twitterTile.hidden = isFixesHidden;
+  }
+  const easyFbBtn = document.getElementById('btn-easy-fix-facebook');
+  if (easyFbBtn) {
+    easyFbBtn.style.display = isFixesHidden ? 'none' : '';
+    easyFbBtn.hidden = isFixesHidden;
+  }
+  const easyTwBtn = document.getElementById('btn-easy-fix-twitter');
+  if (easyTwBtn) {
+    easyTwBtn.style.display = isFixesHidden ? 'none' : '';
+    easyTwBtn.hidden = isFixesHidden;
+  }
+
+  // Update menu groups visibility: hide any group whose child tabs are all hidden
+  document.querySelectorAll('.menu-group').forEach(group => {
+    const childTabs = Array.from(group.querySelectorAll('.menu-tab'));
+    if (childTabs.length > 0) {
+      const anyVisible = childTabs.some(t => t.style.display !== 'none' && !t.hidden);
+      group.style.display = anyVisible ? '' : 'none';
+      group.hidden = !anyVisible;
     }
   });
 
-  const modskinTile = document.querySelector('.tool-tile[data-tab="modskin"]');
-  if (modskinTile) {
-    modskinTile.style.display = !isL2 ? 'none' : '';
-    modskinTile.hidden = !isL2;
-  }
-
-  const norecoilTile = document.querySelector('.tool-tile[data-tab="norecoil"]');
-  if (norecoilTile) {
-    norecoilTile.style.display = !isL2 ? 'none' : '';
-    norecoilTile.hidden = !isL2;
-  }
-
-  const memoryTile = document.querySelector('.tool-tile[data-tab="memory"]');
-  if (memoryTile) {
-    memoryTile.style.display = isL2 ? 'none' : '';
-    memoryTile.hidden = isL2;
-  }
-
-  const easyModskinBtn = document.getElementById('btn-easy-modskin');
-  if (easyModskinBtn) {
-    easyModskinBtn.style.display = !isL2 ? 'none' : '';
-    easyModskinBtn.hidden = !isL2;
-  }
-
-  const easyNoRecoilBtn = document.getElementById('btn-easy-norecoil');
-  if (easyNoRecoilBtn) {
-    easyNoRecoilBtn.style.display = !isL2 ? 'none' : '';
-    easyNoRecoilBtn.hidden = !isL2;
-  }
-
-  const easyMemoryBtn = document.getElementById('btn-easy-memory');
-  if (easyMemoryBtn) {
-    easyMemoryBtn.style.display = isL2 ? 'none' : '';
-    easyMemoryBtn.hidden = isL2;
+  // Redirect to home if current active tab is hidden
+  if (currentTab !== 'home') {
+    const activeTabBtn = document.querySelector(`.menu-tab[data-tab="${currentTab}"]`);
+    if (activeTabBtn && (activeTabBtn.style.display === 'none' || activeTabBtn.hidden)) {
+      switchTab('home', true);
+    }
   }
 
   if (!isL2 && currentTab === 'modskin') {
@@ -3188,6 +3576,8 @@ function openSettingsModal() {
     if (row) row.classList.toggle('is-active', EasyModeState.enabled);
     const statusTag = document.getElementById('easy-mode-status-tag');
     if (statusTag) statusTag.textContent = EasyModeState.enabled ? t('settings.active') : t('settings.inactive');
+
+    FeatureVisibility.renderSettings();
   }
 }
 
@@ -3400,6 +3790,7 @@ function rerenderAll() {
   updateDisplayResUI();
   renderHzSelector();
   applyEasyMode(EasyModeState.enabled);
+  FeatureVisibility.renderSettings();
 }
 
 // ----------------------------------------------------------

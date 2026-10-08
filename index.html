@@ -3429,6 +3429,23 @@
             <span data-i18n="settings.createShortcutBtn">Create Shortcut</span>
           </button>
         </div>
+
+        <!-- Feature Visibility Section -->
+        <div class="settings-section-divider">
+          <div class="settings-section-header">
+            <div class="settings-section-title-wrap">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+              <h4 data-i18n="settings.featuresHeader">Feature &amp; Tool Visibility</h4>
+            </div>
+            <p class="settings-section-desc" data-i18n="settings.featuresSub">Hide or show tools and tabs to customize what appears across the app</p>
+          </div>
+          <div class="settings-features-list" id="settings-features-list">
+            <!-- Populated dynamically by FeatureVisibility.renderSettings() -->
+          </div>
+        </div>
       </div>
 
       <div class="settings-modal-foot">
