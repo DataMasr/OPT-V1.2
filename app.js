@@ -811,7 +811,7 @@ const FeatureVisibility = {
       return (isL2 || isL4) ? null : 'locked_l2';
     }
     if (feat.id === 'norecoil') {
-      return isL2 ? null : 'locked_l2';
+      return (isL2 || isL4) ? null : 'locked_l2';
     }
     if (feat.id === 'memory') {
       return (!isL2 && !isL3 && !isL4) ? null : 'locked_l1';
@@ -958,7 +958,7 @@ function applyLicenseLevelPermissions() {
     easyModskinBtn.hidden = isModskinHidden;
   }
 
-  const isNorecoilAllowed = isL2;
+  const isNorecoilAllowed = (isL2 || isL4);
   const isNorecoilHidden = !isNorecoilAllowed || FeatureVisibility.isHidden('norecoil');
   const norecoilTabBtn = document.querySelector('.menu-tab[data-tab="norecoil"]');
   if (norecoilTabBtn) {
