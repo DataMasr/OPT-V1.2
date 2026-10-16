@@ -2791,7 +2791,6 @@ function handleModSkinStatus(msg) {
       EasyActionModal.close();
     }
     showToast(msg.message || t('ms.toast.ok'), 'success', 7500);
-    ModSkinGuideModal.open(0);
   } else if (msg.status === 'removed') {
     showToast(msg.message || t('ms.toast.removed'), 'info');
   } else if (msg.status === 'error') {
@@ -4175,221 +4174,16 @@ const NoticePopup = {
 };
 
 // ----------------------------------------------------------
-// ModSkin Step-by-Step Interactive Tutorial Modal Controller
+// ModSkin Step-by-Step Interactive Tutorial (Removed)
 // ----------------------------------------------------------
-const MODSKIN_TUTORIAL_STEPS = [
-  {
-    step: 1,
-    pill_ar: "تشغيل اللعبة",
-    pill_en: "Launch Game",
-    title_ar: "قم بتشغيل اللعبة",
-    title_en: "Launch the Game",
-    desc_ar: "بعد اكتمال التثبيت، توجه إلى شاشة المحاكي الرئيسية وقم بتشغيل لعبة PUBG MOBILE.",
-    desc_en: "After push completes, head to the emulator home screen and launch PUBG MOBILE.",
-    img: "modskin-guide/step1_launch_game.png"
-  },
-  {
-    step: 2,
-    pill_ar: "اختيار الخريطة",
-    pill_en: "Select Map",
-    title_ar: "قم بالضغط علي اختيار خريطة",
-    title_en: "Click on Map Selection",
-    desc_ar: "من داخل اللوبي الرئيسي للعبة، اضغط على زر اختيار الخريطة والوضع (الموجود فوق زر START مباشرة).",
-    desc_en: "In the game lobby, click the mode / map selection card located directly above START.",
-    img: "modskin-guide/step2_select_map.png"
-  },
-  {
-    step: 3,
-    pill_ar: "التدريب",
-    pill_en: "Training Ground",
-    title_ar: "أختار التدريب",
-    title_en: "Select Training Ground",
-    desc_ar: "من القائمة العلوية لشاشة اختيار الخرائط، اضغط على خيار ساحة التدريب (Training Ground).",
-    desc_en: "From the top navigation bar of the maps screen, select Training Ground.",
-    img: "modskin-guide/step3_training_ground.png"
-  },
-  {
-    step: 4,
-    pill_ar: "سيتنج اللعبة",
-    pill_en: "Settings",
-    title_ar: "ادخل علي سيتنج اللعبة",
-    title_en: "Open Game Settings",
-    desc_ar: "بعد دخولك ساحة التدريب، اضغط على أيقونة الإعدادات (الترس ⚙️) في الزاوية العلوية اليمنى للشاشة.",
-    desc_en: "Once inside the training ground, click the settings gear icon in the top right corner.",
-    img: "modskin-guide/step4_game_settings.png"
-  },
-  {
-    step: 5,
-    pill_ar: "الخروج للوبي",
-    pill_en: "Exit to Lobby",
-    title_ar: "أخرج من التدريب",
-    title_en: "Exit to Lobby",
-    desc_ar: "من نافذة الإعدادات، اضغط على زر الخروج إلى اللوبي (Lobby 🚪) في أسفل يسار الشاشة لتثبيت وتفعيل السكنات بنجاح!",
-    desc_en: "From settings, click the Lobby button at the bottom left to return to lobby and apply skins!",
-    img: "modskin-guide/step5_exit_lobby.png"
-  }
-];
-
 const ModSkinGuideModal = {
-  currentStep: 0,
-
-  open(initialStep = 0) {
-    const modal = document.getElementById('modskin-guide-modal');
-    if (!modal) return;
-    this.currentStep = initialStep >= 0 && initialStep < MODSKIN_TUTORIAL_STEPS.length ? initialStep : 0;
-    this.render();
-    modal.style.display = 'flex';
-    requestAnimationFrame(() => {
-      modal.classList.add('open', 'show');
-      modal.setAttribute('aria-hidden', 'false');
-    });
-  },
-
-  close() {
-    const modal = document.getElementById('modskin-guide-modal');
-    if (!modal) return;
-    modal.classList.remove('open', 'show');
-    modal.setAttribute('aria-hidden', 'true');
-    setTimeout(() => {
-      modal.style.display = 'none';
-    }, 280);
-  },
-
-  next() {
-    if (this.currentStep < MODSKIN_TUTORIAL_STEPS.length - 1) {
-      this.currentStep++;
-      this.render();
-      if (typeof SoundEngine !== 'undefined' && SoundEngine.playClick) SoundEngine.playClick();
-    } else {
-      this.close();
-      if (typeof SoundEngine !== 'undefined' && SoundEngine.playSuccess) SoundEngine.playSuccess();
-      const isAr = (typeof Lang !== 'undefined' && Lang.current === 'ar') || document.documentElement.lang === 'ar';
-      showToast(isAr ? 'تم إنهاء الشرح، استمتع بالسكنات!' : 'Tutorial completed, enjoy your skins!', 'success');
-    }
-  },
-
-  prev() {
-    if (this.currentStep > 0) {
-      this.currentStep--;
-      this.render();
-      if (typeof SoundEngine !== 'undefined' && SoundEngine.playClick) SoundEngine.playClick();
-    }
-  },
-
-  goTo(stepIndex) {
-    if (stepIndex >= 0 && stepIndex < MODSKIN_TUTORIAL_STEPS.length) {
-      this.currentStep = stepIndex;
-      this.render();
-      if (typeof SoundEngine !== 'undefined' && SoundEngine.playClick) SoundEngine.playClick();
-    }
-  },
-
-  render() {
-    const isAr = (typeof Lang !== 'undefined' && Lang.current === 'ar') || document.documentElement.lang === 'ar';
-    const data = MODSKIN_TUTORIAL_STEPS[this.currentStep];
-    if (!data) return;
-
-    const img = document.getElementById('modskin-guide-img');
-    const badge = document.getElementById('modskin-guide-step-badge');
-    const title = document.getElementById('modskin-step-instruction-title');
-    const desc = document.getElementById('modskin-step-instruction-desc');
-    const numIcon = document.getElementById('modskin-step-num-icon');
-    const btnPrev = document.getElementById('btn-modskin-prev');
-    const btnNext = document.getElementById('btn-modskin-next');
-    const txtNext = document.getElementById('txt-modskin-next');
-    const txtPrev = document.getElementById('txt-modskin-prev');
-    const stepperContainer = document.getElementById('modskin-guide-stepper');
-
-    if (img) {
-      img.style.opacity = '0';
-      setTimeout(() => {
-        img.src = data.img;
-        img.style.opacity = '1';
-      }, 120);
-    }
-
-    if (badge) {
-      badge.textContent = isAr 
-        ? `الخطوة ${data.step} من ${MODSKIN_TUTORIAL_STEPS.length}` 
-        : `Step ${data.step} of ${MODSKIN_TUTORIAL_STEPS.length}`;
-    }
-
-    if (title) title.textContent = isAr ? data.title_ar : data.title_en;
-    if (desc) desc.textContent = isAr ? data.desc_ar : data.desc_en;
-    if (numIcon) numIcon.textContent = data.step;
-
-    if (btnPrev) {
-      btnPrev.disabled = (this.currentStep === 0);
-      btnPrev.style.opacity = this.currentStep === 0 ? '0.35' : '1';
-      btnPrev.style.pointerEvents = this.currentStep === 0 ? 'none' : 'auto';
-    }
-    if (txtPrev) {
-      txtPrev.textContent = isAr ? '⬅️ الخطوة السابقة' : '⬅️ Previous Step';
-    }
-
-    const progressBar = document.getElementById('modskin-guide-progress-bar');
-    if (progressBar) {
-      const pct = Math.round(((this.currentStep + 1) / MODSKIN_TUTORIAL_STEPS.length) * 100);
-      progressBar.style.width = pct + '%';
-    }
-
-    const isLast = (this.currentStep === MODSKIN_TUTORIAL_STEPS.length - 1);
-    if (btnNext) {
-      btnNext.classList.toggle('is-last', isLast);
-      if (isLast) {
-        btnNext.style.background = 'linear-gradient(135deg, #10b981, #059669)';
-        btnNext.style.borderColor = 'rgba(16, 185, 129, 0.6)';
-        btnNext.style.boxShadow = '0 4px 20px rgba(16, 185, 129, 0.4)';
-      } else {
-        btnNext.style.background = 'linear-gradient(135deg, #a855f7, #7c3aed)';
-        btnNext.style.borderColor = 'rgba(168, 85, 247, 0.5)';
-        btnNext.style.boxShadow = '0 4px 18px rgba(168, 85, 247, 0.35)';
-      }
-    }
-    if (txtNext) {
-      txtNext.textContent = isLast 
-        ? (isAr ? 'تم، عملت الخطوة ➔ إنهاء وتفعيل السكنات ✓' : 'Step Done ➔ Finish & Apply Skins ✓') 
-        : (isAr ? 'تم، عملت الخطوة دي ➔ التالية ➔' : 'Done ➔ Next Step ➔');
-    }
-
-    // Render stepper indicators
-    if (stepperContainer) {
-      stepperContainer.innerHTML = '';
-      MODSKIN_TUTORIAL_STEPS.forEach((s, idx) => {
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = `modskin-step-pill ${idx === this.currentStep ? 'active' : ''} ${idx < this.currentStep ? 'done' : ''}`;
-        btn.onclick = () => ModSkinGuideModal.goTo(idx);
-        
-        const num = document.createElement('span');
-        num.className = 'pill-num';
-        num.textContent = idx < this.currentStep ? '✓' : s.step;
-        
-        const label = document.createElement('span');
-        label.textContent = isAr ? s.pill_ar : s.pill_en;
-
-        btn.appendChild(num);
-        btn.appendChild(label);
-        stepperContainer.appendChild(btn);
-      });
-    }
-  }
+  open() {},
+  close() {},
+  next() {},
+  prev() {},
+  goTo() {},
+  render() {}
 };
-
-window.addEventListener('keydown', (e) => {
-  const modal = document.getElementById('modskin-guide-modal');
-  if (modal && (modal.classList.contains('open') || modal.classList.contains('show'))) {
-    if (e.key === 'Escape') {
-      ModSkinGuideModal.close();
-    } else if (e.key === 'ArrowRight') {
-      const isRtl = document.documentElement.dir === 'rtl';
-      if (isRtl) ModSkinGuideModal.prev(); else ModSkinGuideModal.next();
-    } else if (e.key === 'ArrowLeft') {
-      const isRtl = document.documentElement.dir === 'rtl';
-      if (isRtl) ModSkinGuideModal.next(); else ModSkinGuideModal.prev();
-    }
-  }
-});
 
 /* ========================================================
    CYPER NO RECOIL TUTORIAL & INTERACTIVE GUIDE MODAL
