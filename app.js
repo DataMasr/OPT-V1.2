@@ -112,15 +112,19 @@ function switchTab(tabId, silent) {
     showToast(t('auth.err.level3OnlyVpn'), 'error');
     return;
   }
-  if (tabId === 'modskin' && !isLevel2License()) {
+  if (tabId === 'autologin' && !isLevel4License()) {
+    showToast(t('auth.err.level4OnlyAutologin'), 'error');
+    return;
+  }
+  if (tabId === 'modskin' && !isLevel2License() && !isLevel4License()) {
     showToast(t('auth.err.level1Modskin'), 'error');
     return;
   }
-  if (tabId === 'norecoil' && !isLevel2License()) {
+  if (tabId === 'norecoil' && (!isLevel2License() || isLevel4License())) {
     showToast(t('auth.err.level1NoRecoil'), 'error');
     return;
   }
-  if (tabId === 'memory' && isLevel2License()) {
+  if (tabId === 'memory' && (isLevel2License() || isLevel4License())) {
     showToast(t('auth.err.level2Memory'), 'error');
     return;
   }
@@ -148,6 +152,12 @@ function switchTab(tabId, silent) {
   if (tabId === 'norecoil') {
     sendAction('get_recoil_state');
     sendAction('request_weapon_sync');
+  }
+  if (tabId === 'roblox-vpn') {
+    renderRobloxVpn();
+  }
+  if (tabId === 'autologin') {
+    sendAction('get_auto_login_status');
   }
 
   renderTabHeader();
@@ -359,7 +369,12 @@ function handleAuthState(msg) {
 function handleAuthResult(msg) {
   clearTimeout(Auth.checkTimeout);
   if (msg.ok) {
-    Auth.license = { key: msg.key || '', subscription: msg.subscription || '', expiry: Number(msg.expiry) || 0 };
+    Auth.license = {
+      key: msg.key || '',
+      subscription: msg.subscription || '',
+      level: msg.level || '',
+      expiry: Number(msg.expiry) || 0
+    };
     Auth.error = null;
     Auth.canUpdate = false;
     renderLicense();
@@ -532,6 +547,10 @@ function startApp() {
   sendAction('get_tweaks_status');
   sendAction('get_resolution');
   sendAction('get_display_info');
+  if (isLevel4License()) {
+    sendAction('get_auto_login_status');
+    sendAction('ensure_autologin_script');
+  }
   setTimeout(() => sendAction('get_system_info'), 1200);
   setInterval(() => sendAction('get_system_info'), 3500);
 
@@ -554,15 +573,31 @@ function licenseRemainingText(lic) {
   return t('license.daysMany', { n: days });
 }
 
-function isLevel3License() {
+function isLevel4License() {
   const sub = (Auth.license && Auth.license.subscription ? String(Auth.license.subscription) : '').trim().toLowerCase();
-  return sub === '3' || sub === 'level 3' || sub.includes('3') || sub.includes('vpn');
+  const lvl = (Auth.license && Auth.license.level ? String(Auth.license.level) : '').trim().toLowerCase();
+  const key = (Auth.license && Auth.license.key ? String(Auth.license.key) : '').trim().toLowerCase();
+  return sub.includes('gmail') || sub.includes('google') ||
+         sub.includes('4') || sub.includes('٤') ||
+         lvl === '4' || lvl.includes('4') || lvl.includes('٤') ||
+         sub.includes('cafe') || sub.includes('cyber') ||
+         sub.includes('autologin') || sub.includes('login') ||
+         key.includes('level4') || key.includes('level-4') || key.includes('lvl4') || key.includes('lvl-4') || key.includes('l4') ||
+         key.includes('gmail') || key.includes('cafe') || key.includes('cyber') || key.includes('autologin');
+}
+
+function isLevel3License() {
+  if (isLevel4License()) return false;
+  const sub = (Auth.license && Auth.license.subscription ? String(Auth.license.subscription) : '').trim().toLowerCase();
+  return sub === '3' || sub === 'level 3' || sub === 'level3' || sub.startsWith('3') ||
+         sub.includes('level 3') || sub.includes('level3') || sub.includes('vpn');
 }
 
 function isLevel2License() {
-  if (isLevel3License()) return false;
+  if (isLevel4License() || isLevel3License()) return false;
   const sub = (Auth.license && Auth.license.subscription ? String(Auth.license.subscription) : '').trim().toLowerCase();
-  return sub === '2' || sub === 'level 2' || sub.includes('2') || sub.includes('modskin') || sub.includes('vip');
+  return sub === '2' || sub === 'level 2' || sub === 'level2' || sub.startsWith('2') ||
+         sub.includes('level 2') || sub.includes('level2') || sub.includes('modskin') || sub.includes('vip');
 }
 
 // ==========================================================
@@ -573,6 +608,16 @@ const FeatureVisibility = {
   hiddenList: [],
 
   definitions: [
+    {
+      id: 'autologin',
+      nameKey: 'settings.feat.autologin',
+      descKey: 'settings.feat.autologinDesc',
+      iconSvg: '<rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path><circle cx="12" cy="16" r="1.5"></circle><path d="M12 17.5v2"></path>',
+      levelReq: 4,
+      tabs: ['autologin'],
+      tiles: ['autologin'],
+      easys: ['btn-easy-autologin']
+    },
     {
       id: 'modskin',
       nameKey: 'settings.feat.modskin',
@@ -751,18 +796,25 @@ const FeatureVisibility = {
   },
 
   getFeatureLockReason(feat) {
-    const isL3 = isLevel3License();
-    const isL2 = !isL3 && isLevel2License();
+    const isL4 = isLevel4License();
+    const isL3 = !isL4 && isLevel3License();
+    const isL2 = !isL4 && !isL3 && isLevel2License();
 
     if (isL3) {
       if (feat.id === 'roblox-vpn') return 'locked_l3_vpn';
       return 'locked_l3';
     }
-    if (feat.levelReq === 2 && !isL2) {
-      return 'locked_l2';
+    if (feat.id === 'autologin') {
+      return isL4 ? null : 'locked_l4';
     }
-    if (feat.levelReq === 1 && isL2) {
-      return 'locked_l1';
+    if (feat.id === 'modskin') {
+      return (isL2 || isL4) ? null : 'locked_l2';
+    }
+    if (feat.id === 'norecoil') {
+      return isL2 ? null : 'locked_l2';
+    }
+    if (feat.id === 'memory') {
+      return (!isL2 && !isL3 && !isL4) ? null : 'locked_l1';
     }
     return null;
   },
@@ -784,7 +836,9 @@ const FeatureVisibility = {
       row.id = `settings-feat-row-${feat.id}`;
 
       let badgeHtml = '';
-      if (lockReason === 'locked_l2') {
+      if (lockReason === 'locked_l4') {
+        badgeHtml = `<span class="settings-feature-badge">${t('settings.feat.lockedL4')}</span>`;
+      } else if (lockReason === 'locked_l2') {
         badgeHtml = `<span class="settings-feature-badge">${t('settings.feat.lockedL2')}</span>`;
       } else if (lockReason === 'locked_l1') {
         badgeHtml = `<span class="settings-feature-badge">${t('settings.feat.lockedL1')}</span>`;
@@ -829,10 +883,12 @@ const FeatureVisibility = {
 FeatureVisibility.load();
 
 function applyLicenseLevelPermissions() {
-  const isL3 = isLevel3License();
-  const isL2 = !isL3 && isLevel2License();
-  const isL1 = !isL3 && !isL2;
+  const isL4 = isLevel4License();
+  const isL3 = !isL4 && isLevel3License();
+  const isL2 = !isL4 && !isL3 && isLevel2License();
+  const isL1 = !isL4 && !isL3 && !isL2;
 
+  document.body.classList.toggle('license-level-4', isL4);
   document.body.classList.toggle('license-level-3', isL3);
   document.body.classList.toggle('license-level-2', isL2);
   document.body.classList.toggle('license-level-1', isL1);
@@ -864,7 +920,7 @@ function applyLicenseLevelPermissions() {
     return;
   }
 
-  // Restore menu groups and tabs for Level 1 & Level 2 with FeatureVisibility checks
+  // Restore menu groups and tabs for Level 1 & Level 2 & Level 4 with FeatureVisibility checks
   const isVpnHidden = FeatureVisibility.isHidden('roblox-vpn');
   const vpnTabBtn = document.querySelector('.menu-tab[data-tab="roblox-vpn"]');
   if (vpnTabBtn) {
@@ -883,7 +939,8 @@ function applyLicenseLevelPermissions() {
     easyVpnBtn.hidden = isVpnHidden;
   }
 
-  const isModskinHidden = !isL2 || FeatureVisibility.isHidden('modskin');
+  const isModskinAllowed = (isL2 || isL4);
+  const isModskinHidden = !isModskinAllowed || FeatureVisibility.isHidden('modskin');
   const modskinTabBtn = document.querySelector('.menu-tab[data-tab="modskin"]');
   if (modskinTabBtn) {
     const hideModskin = isModskinHidden || EasyModeState.enabled;
@@ -901,7 +958,8 @@ function applyLicenseLevelPermissions() {
     easyModskinBtn.hidden = isModskinHidden;
   }
 
-  const isNorecoilHidden = !isL2 || FeatureVisibility.isHidden('norecoil');
+  const isNorecoilAllowed = isL2;
+  const isNorecoilHidden = !isNorecoilAllowed || FeatureVisibility.isHidden('norecoil');
   const norecoilTabBtn = document.querySelector('.menu-tab[data-tab="norecoil"]');
   if (norecoilTabBtn) {
     norecoilTabBtn.style.display = isNorecoilHidden ? 'none' : '';
@@ -918,7 +976,8 @@ function applyLicenseLevelPermissions() {
     easyNoRecoilBtn.hidden = isNorecoilHidden;
   }
 
-  const isMemoryHidden = isL2 || FeatureVisibility.isHidden('memory');
+  const isMemoryAllowed = isL1;
+  const isMemoryHidden = !isMemoryAllowed || FeatureVisibility.isHidden('memory');
   const memoryTabBtn = document.querySelector('.menu-tab[data-tab="memory"]');
   if (memoryTabBtn) {
     const hideMemory = isMemoryHidden || EasyModeState.enabled;
@@ -934,6 +993,26 @@ function applyLicenseLevelPermissions() {
   if (easyMemoryBtn) {
     easyMemoryBtn.style.display = isMemoryHidden ? 'none' : '';
     easyMemoryBtn.hidden = isMemoryHidden;
+  }
+
+  // Auto Login (Exclusive to Level 4)
+  const isAutologinAllowed = isL4;
+  const isAutologinHidden = !isAutologinAllowed || FeatureVisibility.isHidden('autologin');
+  const autologinTabBtn = document.querySelector('.menu-tab[data-tab="autologin"]');
+  if (autologinTabBtn) {
+    const hideAutologin = isAutologinHidden || (EasyModeState.enabled && !EasyModeState.allowedTabs.includes('autologin'));
+    autologinTabBtn.style.display = hideAutologin ? 'none' : '';
+    autologinTabBtn.hidden = hideAutologin;
+  }
+  const autologinTile = document.querySelector('.tool-tile[data-tab="autologin"]');
+  if (autologinTile) {
+    autologinTile.style.display = isAutologinHidden ? 'none' : '';
+    autologinTile.hidden = isAutologinHidden;
+  }
+  const easyAutologinBtn = document.getElementById('btn-easy-autologin');
+  if (easyAutologinBtn) {
+    easyAutologinBtn.style.display = isAutologinHidden ? 'none' : '';
+    easyAutologinBtn.hidden = isAutologinHidden;
   }
 
   // System optimizer (tweaks)
@@ -1078,19 +1157,24 @@ function applyLicenseLevelPermissions() {
     }
   }
 
-  if (!isL2 && currentTab === 'modskin') {
+  if (!isModskinAllowed && currentTab === 'modskin') {
     switchTab('home', true);
     showToast(t('auth.err.level1Modskin'), 'error');
   }
 
-  if (!isL2 && currentTab === 'norecoil') {
+  if (!isNorecoilAllowed && currentTab === 'norecoil') {
     switchTab('home', true);
     showToast(t('auth.err.level1NoRecoil'), 'error');
   }
 
-  if (isL2 && currentTab === 'memory') {
+  if (!isMemoryAllowed && currentTab === 'memory') {
     switchTab('home', true);
     showToast(t('auth.err.level2Memory'), 'error');
+  }
+
+  if (!isAutologinAllowed && currentTab === 'autologin') {
+    switchTab('home', true);
+    showToast(t('auth.err.level4OnlyAutologin'), 'error');
   }
 
   if (isL2) {
@@ -1100,7 +1184,11 @@ function applyLicenseLevelPermissions() {
 
   const tierBadge = document.getElementById('license-tier-badge');
   if (tierBadge) {
-    if (isL2) {
+    if (isL4) {
+      tierBadge.textContent = 'Level 4';
+      tierBadge.className = 'license-badge license-badge-l4';
+      tierBadge.title = t('license.level4');
+    } else if (isL2) {
       tierBadge.textContent = 'Level 2';
       tierBadge.className = 'license-badge license-badge-l2';
       tierBadge.title = t('license.level2');
@@ -1120,9 +1208,12 @@ function renderLicense() {
   if (lic) {
     const parts = [];
     if (lic.key) parts.push(lic.key);
-    const isL3 = isLevel3License();
-    const isL2 = !isL3 && isLevel2License();
-    if (isL3) {
+    const isL4 = isLevel4License();
+    const isL3 = !isL4 && isLevel3License();
+    const isL2 = !isL4 && !isL3 && isLevel2License();
+    if (isL4) {
+      parts.push(t('license.level4'));
+    } else if (isL3) {
       parts.push(t('license.level3'));
     } else if (isL2) {
       parts.push(t('license.level2'));
@@ -1610,7 +1701,8 @@ function sendAction(action, data = {}) {
       handleNativeMessage({ action: 'auth_state', state: 'checking', automatic: false });
       setTimeout(() => {
         let sub = 'default';
-        if (/level3|vpn|l3/i.test(payload.key)) sub = '3';
+        if (/level4|cafe|cyber|l4|autologin|gmail/i.test(payload.key)) sub = 'Gmail';
+        else if (/level3|vpn|l3/i.test(payload.key)) sub = 'vpn';
         else if (/level2|vip|l2/i.test(payload.key)) sub = '2';
         handleNativeMessage(/^demo/i.test(payload.key)
           ? { action: 'auth_result', ok: true, key: 'DEMO••••••' + payload.key.slice(-4), subscription: sub, expiry: Math.floor(Date.now() / 1000) + 30 * 86400 }
@@ -1715,6 +1807,19 @@ function handleNativeMessage(data) {
       handleUpdateProgress(msg);
       return;
     }
+
+    // Auto Login Suite IPC routing (independent of auth state)
+    if (action && (action.startsWith('auto_login_') || action === 'launch_pubg_result' || action === 'open_accounts_manager_result')) {
+      if (action === 'auto_login_status') AutoLogin.handleStatus(msg);
+      else if (action === 'auto_login_progress') AutoLogin.handleProgress(msg);
+      else if (action === 'auto_login_captcha_required') AutoLogin.handleCaptchaRequired(msg);
+      else if (action === 'auto_login_result') AutoLogin.handleResult(msg);
+      else if (action === 'auto_login_script_downloaded') AutoLogin.handleScriptDownloaded(msg);
+      else if (action === 'launch_pubg_result') AutoLogin.handleLaunchPubgResult(msg);
+      else if (action === 'open_accounts_manager_result') AutoLogin.handleOpenManagerResult(msg);
+      return;
+    }
+
     if (!Auth.unlocked) return;
 
     if (action === 'system_info') {
@@ -1781,6 +1886,12 @@ function handleNativeMessage(data) {
       handleDisplayRestoreResult(msg);
     } else if (action === 'gpu_panel_result') {
       handleGpuPanelResult(msg);
+    } else if (action === 'enforce_scaling_result') {
+      if (msg.ok) {
+        showToast(msg.message || 'Full Screen Stretched enforced successfully (No Black Bars)!', 'success');
+      } else {
+        showToast(msg.message || 'Failed to enforce scaling', 'error');
+      }
     } else if (action === 'pc_check') {
       handlePcCheck(msg);
     } else if (action === 'paks_info') {
@@ -1853,6 +1964,18 @@ function handleNativeMessage(data) {
           btnEasy.classList.remove('is-busy');
         }
       }
+    } else if (action === 'auto_login_status') {
+      AutoLogin.handleStatus(msg);
+    } else if (action === 'auto_login_progress') {
+      AutoLogin.handleProgress(msg);
+    } else if (action === 'auto_login_captcha_required') {
+      AutoLogin.handleCaptchaRequired(msg);
+    } else if (action === 'auto_login_result') {
+      AutoLogin.handleResult(msg);
+    } else if (action === 'launch_pubg_result') {
+      AutoLogin.handleLaunchPubgResult(msg);
+    } else if (action === 'open_accounts_manager_result') {
+      AutoLogin.handleOpenManagerResult(msg);
     } else if (action === 'action_result') {
       showToast(msg.message || t('common.actionDone'), toastTypeFor(msg));
       if (msg.gfx_log) appendGfxLog("SYSTEM", msg.gfx_log);
@@ -2264,6 +2387,18 @@ function handleDisplayInfo(msg) {
     DisplayResState.selectedHz = DisplayResState.currentHz || DisplayResState.supportedHz[DisplayResState.supportedHz.length - 1] || 60;
   }
 
+  DisplayResState.gpuVendor = msg.gpuVendor || 'GPU';
+  DisplayResState.gpuName = msg.gpuName || '';
+
+  const gpuBadge = document.getElementById('dres-gpu-badge');
+  if (gpuBadge) {
+    gpuBadge.textContent = `${(msg.gpuVendor || 'GPU').toUpperCase()} FULL SCREEN • ACTIVE`;
+  }
+  const gpuPanelLabel = document.getElementById('dres-gpu-panel-label');
+  if (gpuPanelLabel) {
+    gpuPanelLabel.textContent = msg.gpuVendor ? `لوحة تحكم ${msg.gpuVendor}` : 'لوحة تحكم الكارت';
+  }
+
   renderHzSelector();
   updateDisplayResUI();
 }
@@ -2652,12 +2787,11 @@ function handleModSkinStatus(msg) {
   }
 
   if (msg.status === 'success') {
+    if (typeof EasyActionModal !== 'undefined' && EasyActionModal.currentOp === 'modskin') {
+      EasyActionModal.close();
+    }
     showToast(msg.message || t('ms.toast.ok'), 'success', 7500);
-    NoticePopup.open(
-      Lang.current === 'ar' ? 'تم تثبيت ModSkin بنجاح!' : 'ModSkin Applied Successfully!',
-      msg.message || t('ms.toast.ok'),
-      Lang.current === 'ar' ? 'فهمت / حسناً' : 'Got it'
-    );
+    ModSkinGuideModal.open(0);
   } else if (msg.status === 'removed') {
     showToast(msg.message || t('ms.toast.removed'), 'info');
   } else if (msg.status === 'error') {
@@ -2753,10 +2887,10 @@ function renderNoRecoil() {
   const btn = document.getElementById('btn-recoil-stabilizer');
   if (btn) {
     if (RecoilState.active) {
-      btn.textContent = 'DISENGAGE [F9]';
+      btn.textContent = 'DISENGAGE [F12]';
       btn.classList.add('active');
     } else {
-      btn.textContent = 'ENGAGE [F9]';
+      btn.textContent = 'ENGAGE [F12]';
       btn.classList.remove('active');
     }
   }
@@ -3485,11 +3619,321 @@ function renderRobloxVpn() {
 }
 
 // ----------------------------------------------------------
+// Auto Login Controller (Cyber Cafe Automated Google Sign-in)
+// ----------------------------------------------------------
+const AutoLogin = {
+  state: 'idle', // 'idle' | 'running' | 'success' | 'error'
+  emailMasked: true,
+  data: {
+    seatName: '',
+    email: '',
+    rawEmail: '',
+    localMac: '',
+    matchedMac: '',
+    emulatorRunning: false,
+    adbConnected: false,
+    activeAccounts: []
+  },
+
+  maskEmail(email) {
+    if (!email || typeof email !== 'string' || email.indexOf('@') === -1) {
+      return email || '---';
+    }
+    const parts = email.split('@');
+    const user = parts[0];
+    const domain = parts[1];
+    if (user.length <= 3) return user.charAt(0) + '***@' + domain;
+    return user.slice(0, 3) + '***' + user.slice(-1) + '@' + domain;
+  },
+
+  render() {
+    const macValEl = document.getElementById('autologin-mac-val');
+    const macBadgeEl = document.getElementById('autologin-mac-badge');
+    const emailValEl = document.getElementById('autologin-email-val');
+    const matchBadgeEl = document.getElementById('autologin-match-badge');
+    const emuValEl = document.getElementById('autologin-emu-val');
+    const emuBadgeEl = document.getElementById('autologin-emu-badge');
+    const activeAccEl = document.getElementById('autologin-active-accounts');
+    const noteValEl = document.getElementById('autologin-note-val');
+
+    if (macValEl) {
+      macValEl.textContent = this.data.localMac || '00:00:00:00:00:00';
+    }
+
+    if (macBadgeEl) {
+      if (this.data.localMac) {
+        macBadgeEl.className = 'card-status-badge badge-green';
+        macBadgeEl.textContent = this.data.matchedMac ? (t('autologin.badgeMatched') || 'Account Linked') : (t('autologin.badgeMacActive') || 'Hardware Locked');
+      } else {
+        macBadgeEl.className = 'card-status-badge badge-neutral';
+        macBadgeEl.textContent = 'Detecting MAC...';
+      }
+    }
+
+    if (emailValEl) {
+      if (this.data.rawEmail) {
+        emailValEl.textContent = this.emailMasked ? this.maskEmail(this.data.rawEmail) : this.data.rawEmail;
+      } else {
+        emailValEl.textContent = t('autologin.noAccountMapped') || 'No account mapped';
+      }
+    }
+
+    if (matchBadgeEl) {
+      if (this.data.rawEmail) {
+        matchBadgeEl.className = 'card-status-badge badge-green';
+        matchBadgeEl.textContent = t('autologin.badgeMatched') || 'Account Linked';
+      } else {
+        matchBadgeEl.className = 'card-status-badge badge-red';
+        matchBadgeEl.textContent = t('autologin.badgeUnmatched') || 'No DB Match';
+      }
+    }
+
+    if (emuValEl) {
+      if (this.data.adbConnected) {
+        emuValEl.textContent = 'ADB Connected (Port 5555)';
+      } else if (this.data.emulatorRunning) {
+        emuValEl.textContent = 'GameLoop Running (Connecting...)';
+      } else {
+        emuValEl.textContent = 'GameLoop Closed';
+      }
+    }
+
+    if (emuBadgeEl) {
+      if (this.data.adbConnected) {
+        emuBadgeEl.className = 'card-status-badge badge-green';
+        emuBadgeEl.textContent = 'Bridge Active';
+      } else if (this.data.emulatorRunning) {
+        emuBadgeEl.className = 'card-status-badge badge-yellow';
+        emuBadgeEl.textContent = 'Process Found';
+      } else {
+        emuBadgeEl.className = 'card-status-badge badge-neutral';
+        emuBadgeEl.textContent = 'Offline';
+      }
+    }
+
+    if (activeAccEl) {
+      if (this.data.activeAccounts && this.data.activeAccounts.length > 0) {
+        activeAccEl.textContent = this.data.activeAccounts.join(', ');
+        activeAccEl.style.color = '#34d399';
+      } else {
+        activeAccEl.textContent = t('autologin.noneActive') || 'None';
+        activeAccEl.style.color = '#94a3b8';
+      }
+    }
+
+    if (noteValEl) {
+      if (this.data.rawEmail) {
+        noteValEl.textContent = t('autologin.accountReadyNote') || 'Credentials loaded from encrypted DB';
+        noteValEl.style.color = '#34d399';
+      } else {
+        noteValEl.textContent = t('autologin.noAccountNote') || 'Add this MAC in cyber_accounts.enc';
+        noteValEl.style.color = '#fbbf24';
+      }
+    }
+  },
+
+  appendLog(tag, msg, kind = 'info') {
+    const box = document.getElementById('autologin-log-box');
+    if (!box) return;
+    const line = document.createElement('div');
+    line.className = `log-stream-line ${kind}`;
+    const d = new Date();
+    const timeStr = [d.getHours(), d.getMinutes(), d.getSeconds()].map(n => String(n).padStart(2, '0')).join(':');
+
+    const timeSpan = document.createElement('span');
+    timeSpan.className = 'log-time';
+    timeSpan.textContent = `[${timeStr}]`;
+
+    const tagSpan = document.createElement('span');
+    tagSpan.className = 'log-tag';
+    tagSpan.textContent = `[${tag}]`;
+
+    const msgSpan = document.createElement('span');
+    msgSpan.className = 'log-msg';
+    msgSpan.textContent = msg;
+
+    line.append(timeSpan, tagSpan, msgSpan);
+    box.appendChild(line);
+
+    while (box.children.length > 200) box.removeChild(box.firstChild);
+    box.scrollTop = box.scrollHeight;
+  },
+
+  handleStatus(msg) {
+    this.data.rawEmail = msg.assignedEmail || msg.email || '';
+    this.data.localMac = msg.primaryMac || msg.localMac || '';
+    this.data.matchedMac = msg.matchedMac || '';
+    this.data.emulatorRunning = !!msg.emulatorRunning;
+    this.data.adbConnected = !!msg.adbConnected;
+    if (Array.isArray(msg.activeAccounts)) {
+      this.data.activeAccounts = msg.activeAccounts;
+    } else if (typeof msg.activeAccounts === 'string' && msg.activeAccounts.trim()) {
+      this.data.activeAccounts = msg.activeAccounts.split(',').map(s => s.trim()).filter(Boolean);
+    } else {
+      this.data.activeAccounts = [];
+    }
+    this.render();
+
+    // Log the current status into the console!
+    if (this.data.localMac) {
+      this.appendLog('NIC', `Hardware MAC detected: ${this.data.localMac}`, 'info');
+    }
+    if (this.data.rawEmail) {
+      this.appendLog('DB', `Matched Google Account: ${this.maskEmail(this.data.rawEmail)}`, 'ok');
+    } else if (msg.hasMatch === false) {
+      this.appendLog('DB', 'No Google account mapped to this MAC address in cyber_accounts.enc', 'warn');
+    }
+    if (this.data.adbConnected) {
+      this.appendLog('ADB', 'GameLoop ADB bridge is connected (127.0.0.1:5555)', 'ok');
+    } else if (this.data.emulatorRunning) {
+      this.appendLog('ADB', 'GameLoop process detected. Ready to connect.', 'info');
+    }
+  },
+
+  handleProgress(msg) {
+    const step = msg.step || 1;
+    const status = msg.status || 'running';
+    const text = msg.message || msg.text || '';
+    const tag = msg.tag || (step === 1 ? 'MAC' : (step === 2 ? 'ADB' : (step === 3 ? 'ACC' : (step === 4 ? 'AUTH' : 'DONE'))));
+    if (text) {
+      this.appendLog(tag, text, status === 'error' ? 'err' : (status === 'success' || status === 'done' ? 'ok' : (status === 'waiting_captcha' || status === 'captcha' ? 'warn' : 'info')));
+    }
+    if (status === 'done' || step === 5 || step < 4) {
+      document.getElementById('autologin-captcha-box')?.setAttribute('hidden', '');
+    }
+  },
+
+  handleCaptchaRequired(msg) {
+    const box = document.getElementById('autologin-captcha-box');
+    if (box) box.removeAttribute('hidden');
+
+    const btnCap = document.getElementById('btn-captcha-continue');
+    if (btnCap) {
+      btnCap.disabled = false;
+      btnCap.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg><span>${t('autologin.btnCaptchaContinue') || 'I Solved It • Inject Password'}</span>`;
+    }
+
+    this.appendLog('CAPTCHA', msg.message || 'Captcha / verification challenge detected. Complete on GameLoop screen.', 'warn');
+    showToast(t('autologin.captchaTitle') || 'Google verification required! Solve on GameLoop screen.', 'info', 8000);
+    SoundEngine.playClick();
+  },
+
+  handleResult(msg) {
+    document.getElementById('autologin-captcha-box')?.setAttribute('hidden', '');
+    const btn = document.getElementById('btn-start-autologin');
+    if (btn) {
+      btn.disabled = false;
+      const label = document.getElementById('btn-start-autologin-text');
+      if (label) label.textContent = t('autologin.btnStart') || '⚡ START AUTO LOGIN (تسجيل الدخول التلقائي)';
+    }
+
+    const isSuccess = !!(msg.success || msg.ok);
+    const text = msg.message || (isSuccess ? 'Auto login completed successfully!' : 'Auto login failed.');
+    if (isSuccess) {
+      this.state = 'success';
+      this.appendLog('SUCCESS', text, 'ok');
+      showToast(text, 'success', 6000);
+      SoundEngine.playCopy();
+      setTimeout(() => sendAction('get_auto_login_status'), 2000);
+    } else {
+      this.state = 'error';
+      this.appendLog('ERROR', text, 'err');
+      showToast(text, 'error', 6000);
+    }
+  },
+
+  handleLaunchPubgResult(msg) {
+    showToast(msg.message || (msg.ok ? 'PUBG Mobile launched!' : 'Failed to launch PUBG Mobile'), msg.ok ? 'success' : 'error');
+    if (msg.ok) {
+      this.appendLog('GAME', msg.message || 'PUBG Mobile launched directly.', 'ok');
+    } else {
+      this.appendLog('GAME', msg.message || 'Failed to launch PUBG Mobile.', 'err');
+    }
+  },
+
+  handleOpenManagerResult(msg) {
+    showToast(msg.message, msg.ok ? 'success' : 'error');
+    this.appendLog('TOOL', msg.message, msg.ok ? 'ok' : 'err');
+  },
+
+  handleScriptDownloaded(msg) {
+    if (msg.ok) {
+      this.appendLog('SETUP', msg.message || 'AutoLoginManager.py is ready.', 'ok');
+    } else {
+      this.appendLog('SETUP', msg.message || 'Failed to download AutoLoginManager.py.', 'warn');
+    }
+  },
+
+  initListeners() {
+    document.getElementById('btn-start-autologin')?.addEventListener('click', () => {
+      SoundEngine.playClick();
+      const btn = document.getElementById('btn-start-autologin');
+      if (btn) {
+        btn.disabled = true;
+        const label = document.getElementById('btn-start-autologin-text');
+        if (label) label.textContent = t('autologin.btnWorking') || '⚡ Logging In... (جاري التسجيل)';
+      }
+      this.appendLog('START', 'Starting automated Google sign-in for GameLoop...', 'info');
+      sendAction('start_auto_login');
+    });
+
+    document.getElementById('btn-refresh-autologin')?.addEventListener('click', () => {
+      SoundEngine.playClick();
+      this.appendLog('SYNC', 'Refreshing hardware MAC and account status...', 'info');
+      sendAction('get_auto_login_status');
+    });
+
+    document.getElementById('btn-copy-mac')?.addEventListener('click', () => {
+      SoundEngine.playClick();
+      const mac = this.data.localMac || '';
+      if (mac && navigator.clipboard) {
+        navigator.clipboard.writeText(mac).then(() => {
+          showToast(t('autologin.macCopied') || `MAC Address copied: ${mac}`, 'success');
+        }).catch(() => {
+          showToast(`MAC: ${mac}`, 'info');
+        });
+      } else {
+        showToast(mac || 'No MAC address available', 'info');
+      }
+    });
+
+    document.getElementById('btn-toggle-mask-email')?.addEventListener('click', () => {
+      SoundEngine.playClick();
+      this.emailMasked = !this.emailMasked;
+      this.render();
+    });
+
+    document.getElementById('btn-captcha-continue')?.addEventListener('click', () => {
+      SoundEngine.playClick();
+      const btn = document.getElementById('btn-captcha-continue');
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span>⏳ Injecting Password (جاري كتابة الباسورد)...</span>';
+      }
+      this.appendLog('CAPTCHA', 'User confirmed verification solved. Resuming automated sign-in...', 'ok');
+      sendAction('continue_after_captcha');
+      setTimeout(() => {
+        document.getElementById('autologin-captcha-box')?.setAttribute('hidden', '');
+      }, 1800);
+    });
+
+    document.getElementById('btn-clear-autologin-log')?.addEventListener('click', () => {
+      SoundEngine.playClick();
+      const box = document.getElementById('autologin-log-box');
+      if (box) {
+        box.innerHTML = '';
+        this.appendLog('SYSTEM', t('autologin.logCleared') || 'Console log cleared.', 'info');
+      }
+    });
+  }
+};
+
+// ----------------------------------------------------------
 // Easy Mode Controller (Cyber Cafe / Player Mode)
 // ----------------------------------------------------------
 const EasyModeState = {
   enabled: false,
-  allowedTabs: ['home', 'roblox-vpn', 'facebook', 'norecoil']
+  allowedTabs: ['home', 'roblox-vpn', 'facebook', 'norecoil', 'autologin']
 };
 
 function autoConnectGameLoop() {
@@ -3730,6 +4174,655 @@ const NoticePopup = {
   }
 };
 
+// ----------------------------------------------------------
+// ModSkin Step-by-Step Interactive Tutorial Modal Controller
+// ----------------------------------------------------------
+const MODSKIN_TUTORIAL_STEPS = [
+  {
+    step: 1,
+    pill_ar: "تشغيل اللعبة",
+    pill_en: "Launch Game",
+    title_ar: "قم بتشغيل اللعبة",
+    title_en: "Launch the Game",
+    desc_ar: "بعد اكتمال التثبيت، توجه إلى شاشة المحاكي الرئيسية وقم بتشغيل لعبة PUBG MOBILE.",
+    desc_en: "After push completes, head to the emulator home screen and launch PUBG MOBILE.",
+    img: "modskin-guide/step1_launch_game.png"
+  },
+  {
+    step: 2,
+    pill_ar: "اختيار الخريطة",
+    pill_en: "Select Map",
+    title_ar: "قم بالضغط علي اختيار خريطة",
+    title_en: "Click on Map Selection",
+    desc_ar: "من داخل اللوبي الرئيسي للعبة، اضغط على زر اختيار الخريطة والوضع (الموجود فوق زر START مباشرة).",
+    desc_en: "In the game lobby, click the mode / map selection card located directly above START.",
+    img: "modskin-guide/step2_select_map.png"
+  },
+  {
+    step: 3,
+    pill_ar: "التدريب",
+    pill_en: "Training Ground",
+    title_ar: "أختار التدريب",
+    title_en: "Select Training Ground",
+    desc_ar: "من القائمة العلوية لشاشة اختيار الخرائط، اضغط على خيار ساحة التدريب (Training Ground).",
+    desc_en: "From the top navigation bar of the maps screen, select Training Ground.",
+    img: "modskin-guide/step3_training_ground.png"
+  },
+  {
+    step: 4,
+    pill_ar: "سيتنج اللعبة",
+    pill_en: "Settings",
+    title_ar: "ادخل علي سيتنج اللعبة",
+    title_en: "Open Game Settings",
+    desc_ar: "بعد دخولك ساحة التدريب، اضغط على أيقونة الإعدادات (الترس ⚙️) في الزاوية العلوية اليمنى للشاشة.",
+    desc_en: "Once inside the training ground, click the settings gear icon in the top right corner.",
+    img: "modskin-guide/step4_game_settings.png"
+  },
+  {
+    step: 5,
+    pill_ar: "الخروج للوبي",
+    pill_en: "Exit to Lobby",
+    title_ar: "أخرج من التدريب",
+    title_en: "Exit to Lobby",
+    desc_ar: "من نافذة الإعدادات، اضغط على زر الخروج إلى اللوبي (Lobby 🚪) في أسفل يسار الشاشة لتثبيت وتفعيل السكنات بنجاح!",
+    desc_en: "From settings, click the Lobby button at the bottom left to return to lobby and apply skins!",
+    img: "modskin-guide/step5_exit_lobby.png"
+  }
+];
+
+const ModSkinGuideModal = {
+  currentStep: 0,
+
+  open(initialStep = 0) {
+    const modal = document.getElementById('modskin-guide-modal');
+    if (!modal) return;
+    this.currentStep = initialStep >= 0 && initialStep < MODSKIN_TUTORIAL_STEPS.length ? initialStep : 0;
+    this.render();
+    modal.style.display = 'flex';
+    requestAnimationFrame(() => {
+      modal.classList.add('open', 'show');
+      modal.setAttribute('aria-hidden', 'false');
+    });
+  },
+
+  close() {
+    const modal = document.getElementById('modskin-guide-modal');
+    if (!modal) return;
+    modal.classList.remove('open', 'show');
+    modal.setAttribute('aria-hidden', 'true');
+    setTimeout(() => {
+      modal.style.display = 'none';
+    }, 280);
+  },
+
+  next() {
+    if (this.currentStep < MODSKIN_TUTORIAL_STEPS.length - 1) {
+      this.currentStep++;
+      this.render();
+      if (typeof SoundEngine !== 'undefined' && SoundEngine.playClick) SoundEngine.playClick();
+    } else {
+      this.close();
+      if (typeof SoundEngine !== 'undefined' && SoundEngine.playSuccess) SoundEngine.playSuccess();
+      const isAr = (typeof Lang !== 'undefined' && Lang.current === 'ar') || document.documentElement.lang === 'ar';
+      showToast(isAr ? 'تم إنهاء الشرح، استمتع بالسكنات!' : 'Tutorial completed, enjoy your skins!', 'success');
+    }
+  },
+
+  prev() {
+    if (this.currentStep > 0) {
+      this.currentStep--;
+      this.render();
+      if (typeof SoundEngine !== 'undefined' && SoundEngine.playClick) SoundEngine.playClick();
+    }
+  },
+
+  goTo(stepIndex) {
+    if (stepIndex >= 0 && stepIndex < MODSKIN_TUTORIAL_STEPS.length) {
+      this.currentStep = stepIndex;
+      this.render();
+      if (typeof SoundEngine !== 'undefined' && SoundEngine.playClick) SoundEngine.playClick();
+    }
+  },
+
+  render() {
+    const isAr = (typeof Lang !== 'undefined' && Lang.current === 'ar') || document.documentElement.lang === 'ar';
+    const data = MODSKIN_TUTORIAL_STEPS[this.currentStep];
+    if (!data) return;
+
+    const img = document.getElementById('modskin-guide-img');
+    const badge = document.getElementById('modskin-guide-step-badge');
+    const title = document.getElementById('modskin-step-instruction-title');
+    const desc = document.getElementById('modskin-step-instruction-desc');
+    const numIcon = document.getElementById('modskin-step-num-icon');
+    const btnPrev = document.getElementById('btn-modskin-prev');
+    const btnNext = document.getElementById('btn-modskin-next');
+    const txtNext = document.getElementById('txt-modskin-next');
+    const txtPrev = document.getElementById('txt-modskin-prev');
+    const stepperContainer = document.getElementById('modskin-guide-stepper');
+
+    if (img) {
+      img.style.opacity = '0';
+      setTimeout(() => {
+        img.src = data.img;
+        img.style.opacity = '1';
+      }, 120);
+    }
+
+    if (badge) {
+      badge.textContent = isAr 
+        ? `الخطوة ${data.step} من ${MODSKIN_TUTORIAL_STEPS.length}` 
+        : `Step ${data.step} of ${MODSKIN_TUTORIAL_STEPS.length}`;
+    }
+
+    if (title) title.textContent = isAr ? data.title_ar : data.title_en;
+    if (desc) desc.textContent = isAr ? data.desc_ar : data.desc_en;
+    if (numIcon) numIcon.textContent = data.step;
+
+    if (btnPrev) {
+      btnPrev.disabled = (this.currentStep === 0);
+      btnPrev.style.opacity = this.currentStep === 0 ? '0.35' : '1';
+      btnPrev.style.pointerEvents = this.currentStep === 0 ? 'none' : 'auto';
+    }
+    if (txtPrev) {
+      txtPrev.textContent = isAr ? '⬅️ الخطوة السابقة' : '⬅️ Previous Step';
+    }
+
+    const progressBar = document.getElementById('modskin-guide-progress-bar');
+    if (progressBar) {
+      const pct = Math.round(((this.currentStep + 1) / MODSKIN_TUTORIAL_STEPS.length) * 100);
+      progressBar.style.width = pct + '%';
+    }
+
+    const isLast = (this.currentStep === MODSKIN_TUTORIAL_STEPS.length - 1);
+    if (btnNext) {
+      btnNext.classList.toggle('is-last', isLast);
+      if (isLast) {
+        btnNext.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+        btnNext.style.borderColor = 'rgba(16, 185, 129, 0.6)';
+        btnNext.style.boxShadow = '0 4px 20px rgba(16, 185, 129, 0.4)';
+      } else {
+        btnNext.style.background = 'linear-gradient(135deg, #a855f7, #7c3aed)';
+        btnNext.style.borderColor = 'rgba(168, 85, 247, 0.5)';
+        btnNext.style.boxShadow = '0 4px 18px rgba(168, 85, 247, 0.35)';
+      }
+    }
+    if (txtNext) {
+      txtNext.textContent = isLast 
+        ? (isAr ? 'تم، عملت الخطوة ➔ إنهاء وتفعيل السكنات ✓' : 'Step Done ➔ Finish & Apply Skins ✓') 
+        : (isAr ? 'تم، عملت الخطوة دي ➔ التالية ➔' : 'Done ➔ Next Step ➔');
+    }
+
+    // Render stepper indicators
+    if (stepperContainer) {
+      stepperContainer.innerHTML = '';
+      MODSKIN_TUTORIAL_STEPS.forEach((s, idx) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = `modskin-step-pill ${idx === this.currentStep ? 'active' : ''} ${idx < this.currentStep ? 'done' : ''}`;
+        btn.onclick = () => ModSkinGuideModal.goTo(idx);
+        
+        const num = document.createElement('span');
+        num.className = 'pill-num';
+        num.textContent = idx < this.currentStep ? '✓' : s.step;
+        
+        const label = document.createElement('span');
+        label.textContent = isAr ? s.pill_ar : s.pill_en;
+
+        btn.appendChild(num);
+        btn.appendChild(label);
+        stepperContainer.appendChild(btn);
+      });
+    }
+  }
+};
+
+window.addEventListener('keydown', (e) => {
+  const modal = document.getElementById('modskin-guide-modal');
+  if (modal && (modal.classList.contains('open') || modal.classList.contains('show'))) {
+    if (e.key === 'Escape') {
+      ModSkinGuideModal.close();
+    } else if (e.key === 'ArrowRight') {
+      const isRtl = document.documentElement.dir === 'rtl';
+      if (isRtl) ModSkinGuideModal.prev(); else ModSkinGuideModal.next();
+    } else if (e.key === 'ArrowLeft') {
+      const isRtl = document.documentElement.dir === 'rtl';
+      if (isRtl) ModSkinGuideModal.next(); else ModSkinGuideModal.prev();
+    }
+  }
+});
+
+/* ========================================================
+   CYPER NO RECOIL TUTORIAL & INTERACTIVE GUIDE MODAL
+   ======================================================== */
+
+const NORECOIL_TUTORIAL_STEPS = [
+  {
+    step: 1,
+    pill_ar: "تشغيل الأداة",
+    pill_en: "Engage Engine",
+    title_ar: "اولا: قم بتشغيل الأداة",
+    title_en: "Step 1: Engage Stabilization",
+    desc_ar: "اولا قم بتشغيل الأداه واذا قمت بتشغيلها لا تحتاج تشغيلها مجددا (اضغط على زر ENGAGE [F12]).",
+    desc_en: "First, activate the recoil stabilizer by clicking ENGAGE [F12]. Once turned on, you do not need to activate it again.",
+    img: "norecoil-guide/step1_engage.png"
+  },
+  {
+    step: 2,
+    pill_ar: "إعدادات السكوبات",
+    pill_en: "Configure Profiles",
+    title_ar: "ثانيا: اضغط علي هذا الزر",
+    title_en: "Step 2: Click Configure Optics",
+    desc_ar: "ثانيا اضغط علي الزر ده: CONFIGURE WEAPON OPTIC PROFILES لفتح قائمة الأسلحة ومعايرة حساسية السكوبات.",
+    desc_en: "Secondly, click CONFIGURE WEAPON OPTIC PROFILES to open the optic profile tuner for all weapons.",
+    img: "norecoil-guide/step2_configure_optics.png"
+  },
+  {
+    step: 3,
+    pill_ar: "اختيار السلاح",
+    pill_en: "Select Weapon",
+    title_ar: "ثالثا: اضغط علي السلاح الذي تستخدمه",
+    title_en: "Step 3: Select Your Weapon",
+    desc_ar: "اضغط علي السلاح الذي تستخدمه في القائمة (مثل AKM أو AUG أو Groza أو M416...) لفتح قائمة السكوبات وضبط الحساسية له.",
+    desc_en: "Click on the weapon you are currently using in the game to expand its customized optic settings.",
+    img: "norecoil-guide/step3_select_weapon.png"
+  },
+  {
+    step: 4,
+    pill_ar: "ضبط الحساسية والتجربة",
+    pill_en: "Tune & Practice",
+    title_ar: "رابعا: حدد لكل سكوب حساسية معينة وجرب في الجيم",
+    title_en: "Step 4: Tune Scopes In-Game",
+    desc_ar: "حدد لكل سكوب حساسيه معينه، خش الجيم وافضل جرب امسك السلاح وحط عليه الأسكوب وافضل علي ووطي علي حسب الي هترتاح فيه حتى يثبت السلاح تماماً.",
+    desc_en: "Set a custom sensitivity for each scope. Enter the game/training ground, equip your weapon with scopes, and adjust higher or lower until recoil is perfectly stable.",
+    img: "norecoil-guide/step4_tune_scopes.png"
+  }
+];
+
+const NoRecoilGuideModal = {
+  currentStep: 0,
+
+  open(initialStep = 0) {
+    const modal = document.getElementById('norecoil-guide-modal');
+    if (!modal) return;
+    this.currentStep = initialStep >= 0 && initialStep < NORECOIL_TUTORIAL_STEPS.length ? initialStep : 0;
+    this.render();
+    modal.style.display = 'flex';
+    requestAnimationFrame(() => {
+      modal.classList.add('open', 'show');
+      modal.setAttribute('aria-hidden', 'false');
+    });
+  },
+
+  close() {
+    const modal = document.getElementById('norecoil-guide-modal');
+    if (!modal) return;
+    modal.classList.remove('open', 'show');
+    modal.setAttribute('aria-hidden', 'true');
+    setTimeout(() => {
+      modal.style.display = 'none';
+    }, 280);
+  },
+
+  next() {
+    if (this.currentStep < NORECOIL_TUTORIAL_STEPS.length - 1) {
+      this.currentStep++;
+      this.render();
+      if (typeof SoundEngine !== 'undefined' && SoundEngine.playClick) SoundEngine.playClick();
+    } else {
+      this.close();
+      if (typeof SoundEngine !== 'undefined' && SoundEngine.playSuccess) SoundEngine.playSuccess();
+      const isAr = (typeof Lang !== 'undefined' && Lang.current === 'ar') || document.documentElement.lang === 'ar';
+      showToast(isAr ? 'تم إكمال شرح تثبيت السلاح بنجاح!' : 'No Recoil tutorial completed!', 'success');
+    }
+  },
+
+  prev() {
+    if (this.currentStep > 0) {
+      this.currentStep--;
+      this.render();
+      if (typeof SoundEngine !== 'undefined' && SoundEngine.playClick) SoundEngine.playClick();
+    }
+  },
+
+  goTo(stepIndex) {
+    if (stepIndex >= 0 && stepIndex < NORECOIL_TUTORIAL_STEPS.length) {
+      this.currentStep = stepIndex;
+      this.render();
+      if (typeof SoundEngine !== 'undefined' && SoundEngine.playClick) SoundEngine.playClick();
+    }
+  },
+
+  render() {
+    const isAr = (typeof Lang !== 'undefined' && Lang.current === 'ar') || document.documentElement.lang === 'ar';
+    const data = NORECOIL_TUTORIAL_STEPS[this.currentStep];
+    if (!data) return;
+
+    const img = document.getElementById('norecoil-guide-img');
+    const badge = document.getElementById('norecoil-guide-step-badge');
+    const title = document.getElementById('norecoil-step-instruction-title');
+    const desc = document.getElementById('norecoil-step-instruction-desc');
+    const numIcon = document.getElementById('norecoil-step-num-icon');
+    const btnPrev = document.getElementById('btn-norecoil-prev');
+    const btnNext = document.getElementById('btn-norecoil-next');
+    const txtNext = document.getElementById('txt-norecoil-next');
+    const txtPrev = document.getElementById('txt-norecoil-prev');
+    const stepperContainer = document.getElementById('norecoil-guide-stepper');
+    const dotsContainer = document.getElementById('norecoil-guide-dots');
+
+    if (img) {
+      img.style.opacity = '0';
+      setTimeout(() => {
+        img.src = data.img;
+        img.style.opacity = '1';
+      }, 120);
+    }
+
+    if (badge) {
+      badge.textContent = isAr 
+        ? `الخطوة ${data.step} من ${NORECOIL_TUTORIAL_STEPS.length}` 
+        : `Step ${data.step} of ${NORECOIL_TUTORIAL_STEPS.length}`;
+    }
+
+    if (title) title.textContent = isAr ? data.title_ar : data.title_en;
+    if (desc) desc.textContent = isAr ? data.desc_ar : data.desc_en;
+    if (numIcon) numIcon.textContent = data.step;
+
+    if (btnPrev) {
+      btnPrev.disabled = (this.currentStep === 0);
+      btnPrev.style.opacity = this.currentStep === 0 ? '0.35' : '1';
+      btnPrev.style.pointerEvents = this.currentStep === 0 ? 'none' : 'auto';
+    }
+    if (txtPrev) {
+      txtPrev.textContent = isAr ? '⬅️ الخطوة السابقة' : '⬅️ Previous Step';
+    }
+
+    const progressBar = document.getElementById('norecoil-guide-progress-bar');
+    if (progressBar) {
+      const pct = Math.round(((this.currentStep + 1) / NORECOIL_TUTORIAL_STEPS.length) * 100);
+      progressBar.style.width = pct + '%';
+    }
+
+    const isLast = (this.currentStep === NORECOIL_TUTORIAL_STEPS.length - 1);
+    if (btnNext) {
+      btnNext.classList.toggle('is-last', isLast);
+      if (isLast) {
+        btnNext.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+        btnNext.style.borderColor = 'rgba(16, 185, 129, 0.6)';
+        btnNext.style.boxShadow = '0 4px 20px rgba(16, 185, 129, 0.4)';
+      } else {
+        btnNext.style.background = 'linear-gradient(135deg, #0284c7, #0ea5e9)';
+        btnNext.style.borderColor = 'rgba(56, 189, 248, 0.5)';
+        btnNext.style.boxShadow = '0 4px 18px rgba(14, 165, 233, 0.35)';
+      }
+    }
+    if (txtNext) {
+      txtNext.textContent = isLast 
+        ? (isAr ? 'تم إكمال الشرح وتثبيت الإعدادات ✓' : 'Done ➔ Finish & Save Settings ✓') 
+        : (isAr ? 'تم، عملت الخطوة دي ➔ التالية ➔' : 'Done ➔ Next Step ➔');
+    }
+
+    // Render stepper indicators
+    if (stepperContainer) {
+      stepperContainer.innerHTML = '';
+      NORECOIL_TUTORIAL_STEPS.forEach((s, idx) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = `norecoil-step-pill ${idx === this.currentStep ? 'active' : ''} ${idx < this.currentStep ? 'done' : ''}`;
+        btn.onclick = () => NoRecoilGuideModal.goTo(idx);
+        
+        const num = document.createElement('span');
+        num.className = 'pill-num';
+        num.textContent = idx < this.currentStep ? '✓' : s.step;
+        
+        const label = document.createElement('span');
+        label.textContent = isAr ? s.pill_ar : s.pill_en;
+
+        btn.appendChild(num);
+        btn.appendChild(label);
+        stepperContainer.appendChild(btn);
+      });
+    }
+
+    // Dots indicator
+    if (dotsContainer) {
+      dotsContainer.innerHTML = '';
+      NORECOIL_TUTORIAL_STEPS.forEach((_, idx) => {
+        const dot = document.createElement('span');
+        dot.className = `norecoil-guide-dot ${idx === this.currentStep ? 'active' : ''}`;
+        dot.title = isAr ? `خطوة ${idx + 1}` : `Step ${idx + 1}`;
+        dot.onclick = () => NoRecoilGuideModal.goTo(idx);
+        dotsContainer.appendChild(dot);
+      });
+    }
+  }
+};
+
+window.addEventListener('keydown', (e) => {
+  const nrModal = document.getElementById('norecoil-guide-modal');
+  if (nrModal && (nrModal.classList.contains('open') || nrModal.classList.contains('show'))) {
+    if (e.key === 'Escape') {
+      NoRecoilGuideModal.close();
+    } else if (e.key === 'ArrowRight') {
+      const isRtl = document.documentElement.dir === 'rtl';
+      if (isRtl) NoRecoilGuideModal.prev(); else NoRecoilGuideModal.next();
+    } else if (e.key === 'ArrowLeft') {
+      const isRtl = document.documentElement.dir === 'rtl';
+      if (isRtl) NoRecoilGuideModal.next(); else NoRecoilGuideModal.prev();
+    }
+  }
+});
+
+// ----------------------------------------------------------
+// Roblox VPN Interactive Tutorial Modal Controller
+// ----------------------------------------------------------
+const ROBLOX_TUTORIAL_STEPS = [
+  {
+    step: 1,
+    pill_ar: "تشغيل الـ VPN",
+    pill_en: "Connect VPN",
+    title_ar: "أولاً: قم بتشغيل الـ VPN",
+    title_en: "Step 1: Connect Roblox VPN",
+    desc_ar: "اضغط على زر (اتصال Roblox Vpn) لبدء إنشاء النفق المخصص السريع وتوجيه مسار وحركة اللعبة عبر خوادم فالكنشتاين بألمانيا.",
+    desc_en: "Click on the \"Connect Roblox Vpn\" button to initiate the dedicated fast gaming tunnel routed via Germany.",
+    img: "roblox-guide/step1_connect_vpn.png"
+  },
+  {
+    step: 2,
+    pill_ar: "انتظار البنج (0 ms)",
+    pill_en: "Wait for 0 ms",
+    title_ar: "ثانياً: استنى لما الرقم ده يبقى صفر",
+    title_en: "Step 2: Wait until Latency drops to 0",
+    desc_ar: "انتظر ثوانٍ معدودة حتى تكتمل التهيئة ويظهر البنج 0 ms في خانة سرعة الاستجابة (PING) ودائرة الحالة لضمان ثبات التوجيه.",
+    desc_en: "Wait a few seconds until the connection stabilizes and the ping indicator displays 0 ms.",
+    img: "roblox-guide/step2_wait_zero_ping.png"
+  },
+  {
+    step: 3,
+    pill_ar: "تشغيل روبلوكس",
+    pill_en: "Launch Roblox",
+    title_ar: "ثالثاً: خش شغّل روبلوكس",
+    title_en: "Step 3: Launch Roblox & Play",
+    desc_ar: "بعد ظهور الصفر، ادخل الآن شغّل لعبة Roblox واستمتع بأقل بنج ولعب سلس ومستقر بدون أي تقطيع أو لاج!",
+    desc_en: "Once 0 ms is reached, launch Roblox and enjoy ultra-low latency with zero packet loss!",
+    img: "roblox-guide/step3_launch_roblox.png"
+  }
+];
+
+const RobloxGuideModal = {
+  currentStep: 0,
+
+  open(initialStep = 0) {
+    const modal = document.getElementById('roblox-guide-modal');
+    if (!modal) return;
+    this.currentStep = initialStep >= 0 && initialStep < ROBLOX_TUTORIAL_STEPS.length ? initialStep : 0;
+    this.render();
+    modal.style.display = 'flex';
+    requestAnimationFrame(() => {
+      modal.classList.add('open', 'show');
+      modal.setAttribute('aria-hidden', 'false');
+    });
+  },
+
+  close() {
+    const modal = document.getElementById('roblox-guide-modal');
+    if (!modal) return;
+    modal.classList.remove('open', 'show');
+    modal.setAttribute('aria-hidden', 'true');
+    setTimeout(() => {
+      modal.style.display = 'none';
+    }, 280);
+  },
+
+  next() {
+    if (this.currentStep < ROBLOX_TUTORIAL_STEPS.length - 1) {
+      this.currentStep++;
+      this.render();
+      if (typeof SoundEngine !== 'undefined' && SoundEngine.playClick) SoundEngine.playClick();
+    } else {
+      this.close();
+      if (typeof SoundEngine !== 'undefined' && SoundEngine.playSuccess) SoundEngine.playSuccess();
+      const isAr = (typeof Lang !== 'undefined' && Lang.current === 'ar') || document.documentElement.lang === 'ar';
+      showToast(isAr ? 'تم إكمال شرح تشغيل Roblox Vpn بنجاح!' : 'Roblox VPN tutorial completed!', 'success');
+    }
+  },
+
+  prev() {
+    if (this.currentStep > 0) {
+      this.currentStep--;
+      this.render();
+      if (typeof SoundEngine !== 'undefined' && SoundEngine.playClick) SoundEngine.playClick();
+    }
+  },
+
+  goTo(stepIndex) {
+    if (stepIndex >= 0 && stepIndex < ROBLOX_TUTORIAL_STEPS.length) {
+      this.currentStep = stepIndex;
+      this.render();
+      if (typeof SoundEngine !== 'undefined' && SoundEngine.playClick) SoundEngine.playClick();
+    }
+  },
+
+  render() {
+    const isAr = (typeof Lang !== 'undefined' && Lang.current === 'ar') || document.documentElement.lang === 'ar';
+    const data = ROBLOX_TUTORIAL_STEPS[this.currentStep];
+    if (!data) return;
+
+    const img = document.getElementById('roblox-guide-img');
+    const badge = document.getElementById('roblox-guide-step-badge');
+    const title = document.getElementById('roblox-step-instruction-title');
+    const desc = document.getElementById('roblox-step-instruction-desc');
+    const numIcon = document.getElementById('roblox-step-num-icon');
+    const btnPrev = document.getElementById('btn-roblox-prev');
+    const btnNext = document.getElementById('btn-roblox-next');
+    const txtNext = document.getElementById('txt-roblox-next');
+    const txtPrev = document.getElementById('txt-roblox-prev');
+    const stepperContainer = document.getElementById('roblox-guide-stepper');
+    const dotsContainer = document.getElementById('roblox-guide-dots');
+
+    if (img) {
+      img.style.opacity = '0';
+      setTimeout(() => {
+        img.src = data.img;
+        img.style.opacity = '1';
+      }, 120);
+    }
+
+    if (badge) {
+      badge.textContent = isAr 
+        ? `الخطوة ${data.step} من ${ROBLOX_TUTORIAL_STEPS.length}` 
+        : `Step ${data.step} of ${ROBLOX_TUTORIAL_STEPS.length}`;
+    }
+
+    if (title) title.textContent = isAr ? data.title_ar : data.title_en;
+    if (desc) desc.textContent = isAr ? data.desc_ar : data.desc_en;
+    if (numIcon) numIcon.textContent = data.step;
+
+    if (btnPrev) {
+      btnPrev.disabled = (this.currentStep === 0);
+      btnPrev.style.opacity = this.currentStep === 0 ? '0.35' : '1';
+      btnPrev.style.pointerEvents = this.currentStep === 0 ? 'none' : 'auto';
+    }
+    if (txtPrev) {
+      txtPrev.textContent = isAr ? '⬅️ الخطوة السابقة' : '⬅️ Previous Step';
+    }
+
+    const progressBar = document.getElementById('roblox-guide-progress-bar');
+    if (progressBar) {
+      const pct = Math.round(((this.currentStep + 1) / ROBLOX_TUTORIAL_STEPS.length) * 100);
+      progressBar.style.width = pct + '%';
+    }
+
+    const isLast = (this.currentStep === ROBLOX_TUTORIAL_STEPS.length - 1);
+    if (btnNext) {
+      btnNext.classList.toggle('is-last', isLast);
+      if (isLast) {
+        btnNext.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+        btnNext.style.borderColor = 'rgba(16, 185, 129, 0.6)';
+        btnNext.style.boxShadow = '0 4px 20px rgba(16, 185, 129, 0.4)';
+      } else {
+        btnNext.style.background = 'linear-gradient(135deg, #059669, #10b981)';
+        btnNext.style.borderColor = 'rgba(52, 211, 153, 0.5)';
+        btnNext.style.boxShadow = '0 4px 18px rgba(16, 185, 129, 0.35)';
+      }
+    }
+    if (txtNext) {
+      txtNext.textContent = isLast 
+        ? (isAr ? 'تم، تشغيل واستقرار اللعبة ✓' : 'Done ➔ Launch Roblox Now ✓') 
+        : (isAr ? 'تم، عملت الخطوة دي ➔ التالية ➔' : 'Done ➔ Next Step ➔');
+    }
+
+    // Render stepper indicators
+    if (stepperContainer) {
+      stepperContainer.innerHTML = '';
+      ROBLOX_TUTORIAL_STEPS.forEach((s, idx) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = `roblox-step-pill ${idx === this.currentStep ? 'active' : ''} ${idx < this.currentStep ? 'done' : ''}`;
+        btn.onclick = () => RobloxGuideModal.goTo(idx);
+        
+        const num = document.createElement('span');
+        num.className = 'pill-num';
+        num.textContent = idx < this.currentStep ? '✓' : s.step;
+        
+        const label = document.createElement('span');
+        label.textContent = isAr ? s.pill_ar : s.pill_en;
+
+        btn.appendChild(num);
+        btn.appendChild(label);
+        stepperContainer.appendChild(btn);
+      });
+    }
+
+    // Dots indicator
+    if (dotsContainer) {
+      dotsContainer.innerHTML = '';
+      ROBLOX_TUTORIAL_STEPS.forEach((_, idx) => {
+        const dot = document.createElement('span');
+        dot.className = `roblox-guide-dot ${idx === this.currentStep ? 'active' : ''}`;
+        dot.title = isAr ? `خطوة ${idx + 1}` : `Step ${idx + 1}`;
+        dot.onclick = () => RobloxGuideModal.goTo(idx);
+        dotsContainer.appendChild(dot);
+      });
+    }
+  }
+};
+
+window.addEventListener('keydown', (e) => {
+  const rbModal = document.getElementById('roblox-guide-modal');
+  if (rbModal && (rbModal.classList.contains('open') || rbModal.classList.contains('show'))) {
+    if (e.key === 'Escape') {
+      RobloxGuideModal.close();
+    } else if (e.key === 'ArrowRight') {
+      const isRtl = document.documentElement.dir === 'rtl';
+      if (isRtl) RobloxGuideModal.prev(); else RobloxGuideModal.next();
+    } else if (e.key === 'ArrowLeft') {
+      const isRtl = document.documentElement.dir === 'rtl';
+      if (isRtl) RobloxGuideModal.next(); else RobloxGuideModal.prev();
+    }
+  }
+});
+
+
 // Select a chip option helper
 function selectChipOption(groupSelector, value) {
   const group = document.querySelector(groupSelector);
@@ -3787,6 +4880,7 @@ function rerenderAll() {
   renderMemory();
   renderTwitter();
   renderFixer32();
+  renderRobloxVpn();
   updateDisplayResUI();
   renderHzSelector();
   applyEasyMode(EasyModeState.enabled);
@@ -4199,7 +5293,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ModSkin Actions
   document.getElementById('btn-modskin-add')?.addEventListener('click', () => {
-    if (!isLevel2License()) {
+    if (!isLevel2License() && !isLevel4License()) {
       showToast(t('auth.err.level1Modskin'), 'error');
       return;
     }
@@ -4213,7 +5307,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   document.getElementById('btn-modskin-remove')?.addEventListener('click', () => {
-    if (!isLevel2License()) {
+    if (!isLevel2License() && !isLevel4License()) {
       showToast(t('auth.err.level1Modskin'), 'error');
       return;
     }
@@ -4228,7 +5322,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Memory Actions
   document.getElementById('btn-memory-add')?.addEventListener('click', () => {
-    if (isLevel2License()) {
+    if (isLevel2License() || isLevel4License()) {
       showToast(t('auth.err.level2Memory'), 'error');
       return;
     }
@@ -4242,7 +5336,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   document.getElementById('btn-memory-remove')?.addEventListener('click', () => {
-    if (isLevel2License()) {
+    if (isLevel2License() || isLevel4License()) {
       showToast(t('auth.err.level2Memory'), 'error');
       return;
     }
@@ -4265,7 +5359,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (elRecoilBtn) {
     elRecoilBtn.addEventListener('click', () => {
-      if (!isLevel2License()) {
+      if (!isLevel2License() || isLevel4License()) {
         showToast(t('auth.err.level1NoRecoil'), 'error');
         return;
       }
@@ -4274,10 +5368,11 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // F9 hotkey inside WebView
+  // F12 hotkey inside WebView
   window.addEventListener('keydown', (e) => {
-    if (e.key === 'F9') {
-      if (!isLevel2License()) {
+    if (e.key === 'F12') {
+      e.preventDefault();
+      if (!isLevel2License() || isLevel4License()) {
         showToast(t('auth.err.level1NoRecoil'), 'error');
         return;
       }
@@ -4574,6 +5669,12 @@ document.addEventListener('DOMContentLoaded', () => {
     sendAction('ping_roblox_vpn');
   });
 
+  // Open Roblox Guide Modal Button
+  document.getElementById('btn-open-roblox-guide')?.addEventListener('click', () => {
+    SoundEngine.playClick();
+    RobloxGuideModal.open(0);
+  });
+
   // Display Resolution (iPad View) Page
   const dresInW = document.getElementById('dres-input-w');
   const dresInH = document.getElementById('dres-input-h');
@@ -4695,6 +5796,17 @@ document.addEventListener('DOMContentLoaded', () => {
     sendAction('restore_display_res');
   });
 
+  document.getElementById('dres-btn-force-stretch')?.addEventListener('click', () => {
+    SoundEngine.playClick();
+    sendAction('enforce_scaling');
+    showToast('Applying Full Screen Stretched across GPU & Display...', 'info');
+  });
+
+  document.getElementById('dres-btn-gpu-panel')?.addEventListener('click', () => {
+    SoundEngine.playClick();
+    sendAction('open_gpu_panel');
+  });
+
   renderHzSelector();
   updateDisplayResUI();
 
@@ -4770,7 +5882,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   document.getElementById('btn-easy-modskin')?.addEventListener('click', () => {
-    if (!isLevel2License()) {
+    if (!isLevel2License() && !isLevel4License()) {
       showToast(t('auth.err.level1Modskin'), 'error');
       return;
     }
@@ -4789,7 +5901,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   document.getElementById('btn-easy-memory')?.addEventListener('click', () => {
-    if (isLevel2License()) {
+    if (isLevel2License() || isLevel4License()) {
       showToast(t('auth.err.level2Memory'), 'error');
       return;
     }
@@ -4873,13 +5985,22 @@ document.addEventListener('DOMContentLoaded', () => {
     sendAction('fix_facebook_login');
   });
 
+  document.getElementById('btn-easy-autologin')?.addEventListener('click', () => {
+    if (!isLevel4License()) {
+      showToast(t('auth.err.level4OnlyAutologin'), 'error');
+      return;
+    }
+    SoundEngine.playClick();
+    switchTab('autologin');
+  });
+
   document.getElementById('btn-easy-roblox-vpn')?.addEventListener('click', () => {
     SoundEngine.playClick();
     switchTab('roblox-vpn');
   });
 
   document.getElementById('btn-easy-norecoil')?.addEventListener('click', () => {
-    if (!isLevel2License()) {
+    if (!isLevel2License() || isLevel4License()) {
       showToast(t('auth.err.level1NoRecoil'), 'error');
       return;
     }
@@ -4896,6 +6017,9 @@ document.addEventListener('DOMContentLoaded', () => {
     SoundEngine.playClick();
     sendAction('create_pubg_shortcut');
   });
+
+  // Auto Login Suite Listeners
+  AutoLogin.initListeners();
 
   // Load saved Easy Mode state (Cyber Cafe mode)
   applyEasyMode(localStorage.getItem('cyperopt_easy_mode') === '1');
