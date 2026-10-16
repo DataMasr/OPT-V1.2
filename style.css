@@ -3801,7 +3801,7 @@ body.license-level-2 #tab-autologin {
   display: none !important;
 }
 
-/* Level 4 License Restrictions (Cyber Cafe: Memory Hidden, No Recoil & Auto Login & ModSkin VISIBLE) */
+/* Level 4 License Restrictions (Cyber Cafe: Memory Hidden, Auto Login & ModSkin & No Recoil VISIBLE) */
 body.license-level-4 .menu-tab[data-tab="memory"],
 body.license-level-4 .tool-tile[data-tab="memory"],
 body.license-level-4 #btn-easy-memory,

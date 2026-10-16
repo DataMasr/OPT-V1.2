@@ -120,7 +120,7 @@ function switchTab(tabId, silent) {
     showToast(t('auth.err.level1Modskin'), 'error');
     return;
   }
-  if (tabId === 'norecoil' && (!isLevel2License() || isLevel4License())) {
+  if (tabId === 'norecoil' && !isLevel2License() && !isLevel4License()) {
     showToast(t('auth.err.level1NoRecoil'), 'error');
     return;
   }
@@ -1177,7 +1177,7 @@ function applyLicenseLevelPermissions() {
     showToast(t('auth.err.level4OnlyAutologin'), 'error');
   }
 
-  if (isL2) {
+  if (isL2 || isL4) {
     sendAction('get_recoil_state');
     sendAction('request_weapon_sync');
   }
@@ -5153,7 +5153,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (elRecoilBtn) {
     elRecoilBtn.addEventListener('click', () => {
-      if (!isLevel2License() || isLevel4License()) {
+      if (!isLevel2License() && !isLevel4License()) {
         showToast(t('auth.err.level1NoRecoil'), 'error');
         return;
       }
@@ -5166,7 +5166,7 @@ document.addEventListener('DOMContentLoaded', () => {
   window.addEventListener('keydown', (e) => {
     if (e.key === 'F12') {
       e.preventDefault();
-      if (!isLevel2License() || isLevel4License()) {
+      if (!isLevel2License() && !isLevel4License()) {
         showToast(t('auth.err.level1NoRecoil'), 'error');
         return;
       }
@@ -5794,7 +5794,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   document.getElementById('btn-easy-norecoil')?.addEventListener('click', () => {
-    if (!isLevel2License() || isLevel4License()) {
+    if (!isLevel2License() && !isLevel4License()) {
       showToast(t('auth.err.level1NoRecoil'), 'error');
       return;
     }
